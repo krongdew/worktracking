@@ -1,7 +1,8 @@
-// src/components/todo-list/TodoListFilter.tsx
-"use client";
-
+import React from 'react';
+import { Select, Space } from 'antd';
 import { TodoType, TodoStatus } from "@prisma/client";
+
+const { Option } = Select;
 
 interface TodoListFilterProps {
   activeFilter: {
@@ -31,36 +32,36 @@ export default function TodoListFilter({
   ];
   
   return (
-    <div className="flex flex-col md:flex-row gap-2 md:items-center w-full md:w-auto">
+    <Space size="middle" className="w-full">
       <div className="flex items-center">
         <span className="text-sm text-gray-700 mr-2">ประเภท:</span>
-        <select
+        <Select
           value={activeFilter.type}
-          onChange={(e) => onFilterChange(e.target.value as TodoType | "ALL", activeFilter.status)}
-          className="px-2 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          onChange={(value) => onFilterChange(value as TodoType | "ALL", activeFilter.status)}
+          style={{ width: 150 }}
         >
           {todoTypes.map((type) => (
-            <option key={type.value} value={type.value}>
+            <Option key={type.value} value={type.value}>
               {type.label}
-            </option>
+            </Option>
           ))}
-        </select>
+        </Select>
       </div>
       
       <div className="flex items-center">
         <span className="text-sm text-gray-700 mr-2">สถานะ:</span>
-        <select
+        <Select
           value={activeFilter.status}
-          onChange={(e) => onFilterChange(activeFilter.type, e.target.value as TodoStatus | "ALL")}
-          className="px-2 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          onChange={(value) => onFilterChange(activeFilter.type, value as TodoStatus | "ALL")}
+          style={{ width: 150 }}
         >
           {todoStatuses.map((status) => (
-            <option key={status.value} value={status.value}>
+            <Option key={status.value} value={status.value}>
               {status.label}
-            </option>
+            </Option>
           ))}
-        </select>
+        </Select>
       </div>
-    </div>
+    </Space>
   );
 }

@@ -1,8 +1,10 @@
-// src/components/public-view/PublicYearPlan.tsx
 "use client";
 
 import { useState } from "react";
-import { ActivityType } from "@prisma/client";
+import { Select, Typography, Card, Tag } from 'antd';
+
+// Local type definitions
+type ActivityType = 'ONGOING' | 'PARTIAL' | 'EVENT' | 'TRAINING' | 'DESIGN' | 'OTHER';
 
 interface YearPlanActivity {
   id: string;
@@ -96,120 +98,186 @@ export default function PublicYearPlan({ yearPlans }: PublicYearPlanProps) {
   const selectedYearPlan = yearPlans.find(plan => plan.id === selectedYearPlanId);
   
   return (
-    <div>
+    <Card>
       {yearPlans.length > 0 ? (
         <div>
           <div className="mb-6">
-            <label htmlFor="year-plan-select" className="block text-sm font-medium text-gray-700 mb-2">
-              เลือกแผนการดำเนินงาน
-            </label>
-            <select
-              id="year-plan-select"
+            <Typography.Text strong>เลือกแผนการดำเนินงาน</Typography.Text>
+            <Select
+              style={{ width: '100%' }}
               value={selectedYearPlanId}
-              onChange={(e) => setSelectedYearPlanId(e.target.value)}
-              className="w-full md:w-auto px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              onChange={(value) => setSelectedYearPlanId(value)}
             >
               {yearPlans.map((plan) => (
-                <option key={plan.id} value={plan.id}>
+                <Select.Option key={plan.id} value={plan.id}>
                   {plan.title} (ปี {plan.year})
-                </option>
+                </Select.Option>
               ))}
-            </select>
+            </Select>
           </div>
           
           {selectedYearPlan && (
             <div>
-              <h2 className="text-xl font-semibold mb-2">
+              <Typography.Title level={4}>
                 {selectedYearPlan.title} (ปี {selectedYearPlan.year})
-              </h2>
+              </Typography.Title>
               
               {selectedYearPlan.description && (
-                <p className="text-gray-600 mb-4">{selectedYearPlan.description}</p>
+                <Typography.Paragraph type="secondary">
+                  {selectedYearPlan.description}
+                </Typography.Paragraph>
               )}
               
-              <div className="bg-white rounded-lg shadow-sm overflow-hidden mt-4">
-                <div className="overflow-x-auto">
-                  <div className="min-w-[900px]">
-                    {/* ส่วนหัวของตาราง */}
-                    <div className="flex border-b">
-                      <div className="w-64 min-w-64 p-3 font-semibold text-right border-r">
-                        กิจกรรม
-                      </div>
-                      <div className="flex flex-1">
-                        {months.map((month, index) => (
-                          <div
-                            key={index}
-                            className="flex-1 min-w-[80px] text-center p-3 font-semibold border-r last:border-r-0"
-                          >
-                            {month}
-                          </div>
-                        ))}
-                      </div>
+              <div style={{ 
+                overflowX: 'auto', 
+                border: '1px solid #d9d9d9', 
+                borderRadius: '8px', 
+                marginTop: 16 
+              }}>
+                <div style={{ minWidth: '900px' }}>
+                  {/* ส่วนหัวของตาราง */}
+                  <div style={{ display: 'flex', borderBottom: '1px solid #d9d9d9' }}>
+                    <div style={{ 
+                      width: 256, 
+                      padding: 12, 
+                      fontWeight: 'bold', 
+                      textAlign: 'right', 
+                      borderRight: '1px solid #d9d9d9' 
+                    }}>
+                      กิจกรรม
                     </div>
-                    
-                    {/* ส่วนแสดงข้อมูลกิจกรรม */}
-                    {selectedYearPlan.activities.length > 0 ? (
-                      selectedYearPlan.activities.map((activity) => {
-                        const position = calculateTaskPosition(activity);
-                        
-                        return (
-                          <div key={activity.id} className="flex border-b">
-                            <div className="w-64 min-w-64 p-3 flex items-center justify-end text-right border-r relative">
-                              <span className="text-sm">{activity.title}</span>
-                            </div>
-                            <div className="flex flex-1 relative h-12">
-                              {months.map((_, index) => (
-                                <div
-                                  key={index}
-                                  className="flex-1 min-w-[80px] border-r last:border-r-0"
-                                ></div>
-                              ))}
-                              
-                              <div
-                                className="absolute top-1/2 transform -translate-y-1/2 h-8 rounded text-white text-xs flex items-center justify-center px-2"
-                                style={{
-                                  left: `${(position.left / 12) * 100}%`,
-                                  width: `${(position.width / 12) * 100}%`,
-                                  backgroundColor: activityTypeColors[activity.type]
-                                }}
-                              >
-                                {position.label}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })
-                    ) : (
-                      <div className="flex border-b">
-                        <div className="w-full p-4 text-center text-gray-500">
-                          ยังไม่มีกิจกรรมในแผนการดำเนินงานนี้
+                    <div style={{ display: 'flex', flex: 1 }}>
+                      {months.map((month, index) => (
+                        <div 
+                          key={index} 
+                          style={{ 
+                            flex: 1, 
+                            minWidth: 80, 
+                            textAlign: 'center', 
+                            padding: 12,
+                            fontWeight: 'bold',
+                            borderRight: '1px solid #d9d9d9' 
+                          }}
+                        >
+                          {month}
                         </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                
-                {/* ส่วนแสดงคำอธิบายสี */}
-                <div className="flex flex-wrap justify-center gap-3 p-4 border-t">
-                  {Object.entries(activityTypeNames).map(([type, name]) => (
-                    <div key={type} className="flex items-center">
-                      <div
-                        className="w-4 h-4 rounded mr-2"
-                        style={{ backgroundColor: activityTypeColors[type as ActivityType] }}
-                      ></div>
-                      <span className="text-sm">{name}</span>
+                      ))}
                     </div>
-                  ))}
+                  </div>
+                  
+                  {/* ส่วนแสดงข้อมูลกิจกรรม */}
+                  {selectedYearPlan.activities.length > 0 ? (
+                    selectedYearPlan.activities.map((activity) => {
+                      const position = calculateTaskPosition(activity);
+                      
+                      return (
+                        <div 
+                          key={activity.id} 
+                          style={{ 
+                            display: 'flex', 
+                            borderBottom: '1px solid #d9d9d9' 
+                          }}
+                        >
+                          <div style={{ 
+                            width: 256, 
+                            padding: 12, 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            justifyContent: 'flex-end', 
+                            textAlign: 'right',
+                            borderRight: '1px solid #d9d9d9' 
+                          }}>
+                            <span style={{ fontSize: '0.875rem' }}>{activity.title}</span>
+                          </div>
+                          <div style={{ 
+                            display: 'flex', 
+                            flex: 1, 
+                            position: 'relative', 
+                            height: 48 
+                          }}>
+                            {months.map((_, index) => (
+                              <div 
+                                key={index} 
+                                style={{ 
+                                  flex: 1, 
+                                  minWidth: 80, 
+                                  borderRight: '1px solid #d9d9d9' 
+                                }}
+                              ></div>
+                            ))}
+                            
+                            <div
+                              style={{
+                                position: 'absolute',
+                                top: '50%',
+                                transform: 'translateY(-50%)',
+                                height: 32,
+                                borderRadius: 4,
+                                backgroundColor: activityTypeColors[activity.type],
+                                color: 'white',
+                                fontSize: '0.75rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                padding: '0 8px',
+                                left: `${(position.left / 12) * 100}%`,
+                                width: `${(position.width / 12) * 100}%`,
+                              }}
+                            >
+                              {position.label}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div style={{ 
+                      textAlign: 'center', 
+                      padding: 16, 
+                      color: '#8c8c8c' 
+                    }}>
+                      ยังไม่มีกิจกรรมในแผนการดำเนินงานนี้
+                    </div>
+                  )}
                 </div>
+              </div>
+              
+              {/* ส่วนแสดงคำอธิบายสี */}
+              <div style={{ 
+                display: 'flex', 
+                flexWrap: 'wrap', 
+                justifyContent: 'center', 
+                gap: 12, 
+                padding: 16, 
+                borderTop: '1px solid #d9d9d9' 
+              }}>
+                {Object.entries(activityTypeNames).map(([type, name]) => (
+                  <div 
+                    key={type} 
+                    style={{ 
+                      display: 'flex', 
+                      alignItems: 'center' 
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: 16,
+                        height: 16,
+                        borderRadius: 4,
+                        marginRight: 8,
+                        backgroundColor: activityTypeColors[type as ActivityType]
+                      }}
+                    ></div>
+                    <span style={{ fontSize: '0.875rem' }}>{name}</span>
+                  </div>
+                ))}
               </div>
             </div>
           )}
         </div>
       ) : (
-        <div className="text-center py-8 text-gray-500">
-          <p>ยังไม่มีข้อมูลแผนการดำเนินงาน</p>
-        </div>
+        <Typography.Text type="secondary">ยังไม่มีข้อมูลแผนการดำเนินงาน</Typography.Text>
       )}
-    </div>
+    </Card>
   );
 }

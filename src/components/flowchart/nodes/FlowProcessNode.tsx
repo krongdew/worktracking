@@ -7,7 +7,7 @@ export default function FlowProcessNode({ data }: NodeProps) {
   return (
     <div className="px-4 py-2 rounded-md bg-blue-100 border-2 border-blue-500 min-w-[150px] text-center">
       <Handle type="target" position={Position.Top} id="t" />
-      <div>{data.label}</div>
+      <div>{data?.label || 'Process'}</div>
       <Handle type="source" position={Position.Bottom} id="b" />
     </div>
   );

@@ -1,20 +1,41 @@
-// src/components/todo-list/TodoListManager.tsx
 "use client";
 
 import { useState, useEffect } from "react";
-import { TodoList, TodoStatus, TodoType, Priority } from "@prisma/client";
 import TodoListFilter from "@/components/todo-list/TodoListFilter";
 import TodoListTable from "@/components/todo-list/TodoListTable";
 import TodoListForm from "@/components/todo-list/TodoListForm";
 import { useRouter } from "next/navigation";
+import { Button } from 'antd';
+import { PlusOutlined } from '@ant-design/icons';
 import { createTodoList, updateTodoStatus, deleteTodoList } from "@/server/actions/todo-list-actions";
+
+// Local type definitions to avoid Prisma import
+type TodoType = 'DAILY' | 'WEEKLY' | 'MONTHLY';
+type TodoStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+type Priority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+
+interface TodoList {
+  id: string;
+  title: string;
+  description: string | null;
+  type: TodoType;
+  status: TodoStatus;
+  priority: Priority;
+  dueDate: Date;
+  userId: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
 
 interface TodoListManagerProps {
   initialTodoLists: TodoList[];
   userId: string;
 }
 
-export default function TodoListManager({ initialTodoLists, userId }: TodoListManagerProps) {
+export default function TodoListManager({ 
+  initialTodoLists, 
+  userId 
+}: TodoListManagerProps) {
   const router = useRouter();
   const [todoLists, setTodoLists] = useState<TodoList[]>(initialTodoLists);
   const [filteredTodoLists, setFilteredTodoLists] = useState<TodoList[]>(initialTodoLists);
@@ -139,16 +160,18 @@ export default function TodoListManager({ initialTodoLists, userId }: TodoListMa
           onFilterChange={handleFilterChange}
         />
         
-        <button
-          onClick={() => {
-            setIsEditing(false);
-            setEditingItem(null);
-            setShowTodoForm(true);
-          }}
-          className="md:w-auto w-full bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors"
-        >
-          เพิ่มรายการใหม่
-        </button>
+        <Button 
+  type="primary" 
+  icon={<PlusOutlined />}
+  onClick={() => {
+    setIsEditing(false);
+    setEditingItem(null);
+    setShowTodoForm(true);
+  }}
+  className="md:w-auto w-full"
+>
+  เพิ่มรายการใหม่
+</Button>
       </div>
       
       <TodoListTable
