@@ -1,26 +1,81 @@
-@import "tailwindcss";
+@import 'antd/dist/reset.css';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --foreground-rgb: 0, 0, 0;
+  --background-start-rgb: 245, 247, 250;
+  --background-end-rgb: 255, 255, 255;
+  
+  /* Ant Design Colors */
+  --primary-color: #1890ff;
+  --link-color: #1890ff;
+  --success-color: #52c41a;
+  --warning-color: #faad14;
+  --error-color: #f5222d;
+  --font-size-base: 14px;
+  --heading-color: rgba(0, 0, 0, 0.85);
+  --text-color: rgba(0, 0, 0, 0.65);
+  --text-color-secondary: rgba(0, 0, 0, 0.45);
+  --disabled-color: rgba(0, 0, 0, 0.25);
+  --border-radius-base: 4px;
+  --border-color-base: #d9d9d9;
+  --box-shadow-base: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  color: rgb(var(--foreground-rgb));
+  background: linear-gradient(
+      to bottom,
+      transparent,
+      rgb(var(--background-end-rgb))
+    )
+    rgb(var(--background-start-rgb));
+    font-family: 'Sarabun', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji',
+    'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+}
+
+/* รองรับ ReactFlow */
+.react-flow__node {
+  cursor: pointer;
+}
+
+.react-flow__controls {
+  bottom: 20px;
+  right: 20px;
+  top: auto;
+  left: auto;
+}
+
+.react-flow__minimap {
+  bottom: 20px;
+  left: 20px;
+  top: auto;
+  right: auto;
+}
+
+/* Ant Design Thai Font */
+.ant-typography,
+.ant-btn,
+.ant-input,
+.ant-select,
+.ant-dropdown-menu-item,
+.ant-menu-item,
+.ant-form-item-label > label,
+.ant-modal-title,
+.ant-card-head-title,
+.ant-table,
+.ant-tag,
+.ant-alert-message,
+.ant-alert-description,
+.ant-notification-notice-message,
+.ant-notification-notice-description,
+.ant-message,
+.ant-statistic-title,
+.ant-statistic-content,
+.ant-descriptions-item-label,
+.ant-descriptions-item-content {
+  font-family: 'Sarabun', sans-serif !important;
 }
