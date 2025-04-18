@@ -1,13 +1,31 @@
 // src/components/flowchart/FlowchartManager.tsx
 "use client";
-
 import { useState, useEffect } from "react";
 import { Flowchart } from "@prisma/client";
-import FlowchartSelector from "@/components/flowchart/FlowchartSelector";
+import { 
+  Select, 
+  Button, 
+  Modal, 
+  message, 
+  Space, 
+  Typography, 
+  Card, 
+  Row, 
+  Col,
+  App
+} from "antd";
+import { 
+  PlusOutlined, 
+  EditOutlined, 
+  DeleteOutlined 
+} from "@ant-design/icons";
 import FlowchartEditor from "@/components/flowchart/FlowchartEditor";
 import FlowchartForm from "@/components/flowchart/FlowchartForm";
 import { useRouter } from "next/navigation";
 import { createFlowchart, updateFlowchart, deleteFlowchart } from "@/server/actions/flowchart-actions";
+
+const { Title, Text } = Typography;
+const { Option } = Select;
 
 interface FlowchartManagerProps {
   initialFlowcharts: Flowchart[];
@@ -18,6 +36,7 @@ export default function FlowchartManager({
   initialFlowcharts, 
   userId 
 }: FlowchartManagerProps) {
+  const { modal } = App.useApp();
   const router = useRouter();
   const [flowcharts, setFlowcharts] = useState<Flowchart[]>(initialFlowcharts);
   const [selectedFlowchart, setSelectedFlowchart] = useState<Flowchart | null>(
@@ -69,9 +88,11 @@ export default function FlowchartManager({
       setSelectedFlowchart(newFlowchart);
       setCurrentContent(newFlowchart.content);
       setShowFlowchartForm(false);
+      message.success('สร้างแผนผังสำเร็จ');
       router.refresh();
     } catch (error) {
       console.error("Error creating flowchart:", error);
+      message.error('ไม่สามารถสร้างแผนผังได้');
     }
   };
   
@@ -93,9 +114,11 @@ export default function FlowchartManager({
       setSelectedFlowchart(updatedFlowchart);
       setShowFlowchartForm(false);
       setIsEditing(false);
+      message.success('อัปเดตข้อมูลแผนผังสำเร็จ');
       router.refresh();
     } catch (error) {
       console.error("Error updating flowchart info:", error);
+      message.error('ไม่สามารถอัปเดตข้อมูลแผนผังได้');
     }
   };
   
@@ -114,96 +137,122 @@ export default function FlowchartManager({
       );
       setSelectedFlowchart(updatedFlowchart);
       setCurrentContent(content);
+      message.success('บันทึกแผนผังสำเร็จ');
       router.refresh();
     } catch (error) {
       console.error("Error saving flowchart content:", error);
+      message.error('ไม่สามารถบันทึกแผนผังได้');
     }
   };
   
   const handleDeleteFlowchart = async (flowchartId: string) => {
-    if (confirm("คุณต้องการลบแผนผังนี้ใช่หรือไม่?")) {
-      try {
-        await deleteFlowchart(flowchartId);
-        const updatedFlowcharts = flowcharts.filter((fc) => fc.id !== flowchartId);
-        setFlowcharts(updatedFlowcharts);
-        
-        if (selectedFlowchart?.id === flowchartId) {
-          setSelectedFlowchart(updatedFlowcharts.length > 0 ? updatedFlowcharts[0] : null);
-          setCurrentContent(updatedFlowcharts.length > 0 ? updatedFlowcharts[0].content : "");
+    modal.confirm({
+      title: 'ยืนยันการลบ',
+      content: 'คุณต้องการลบแผนผังนี้ใช่หรือไม่?',
+      okText: 'ใช่, ลบเลย',
+      cancelText: 'ยกเลิก',
+      onOk: async () => {
+        try {
+          await deleteFlowchart(flowchartId);
+          const updatedFlowcharts = flowcharts.filter((fc) => fc.id !== flowchartId);
+          setFlowcharts(updatedFlowcharts);
+          
+          if (selectedFlowchart?.id === flowchartId) {
+            const nextFlowchart = updatedFlowcharts.length > 0 ? updatedFlowcharts[0] : null;
+            setSelectedFlowchart(nextFlowchart);
+            setCurrentContent(nextFlowchart ? nextFlowchart.content : "");
+          }
+          
+          message.success('ลบแผนผังสำเร็จ');
+          router.refresh();
+        } catch (error) {
+          console.error("Error deleting flowchart:", error);
+          message.error('ไม่สามารถลบแผนผังได้');
         }
-        
-        router.refresh();
-      } catch (error) {
-        console.error("Error deleting flowchart:", error);
       }
-    }
+    });
   };
   
   return (
     <div>
-      <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
-        <FlowchartSelector
-          flowcharts={flowcharts}
-          selectedFlowchartId={selectedFlowchart?.id || ""}
-          onFlowchartChange={handleFlowchartChange}
-        />
-        
-        <div className="flex gap-2">
-          <button
-            onClick={() => {
-              setIsEditing(false);
-              setShowFlowchartForm(true);
-            }}
-            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+      <Row gutter={[16, 16]} align="middle" justify="space-between" className="mb-6">
+        <Col>
+          <Select
+            style={{ width: 200 }}
+            value={selectedFlowchart?.id || undefined}
+            onChange={handleFlowchartChange}
+            placeholder="เลือกแผนผัง"
           >
-            สร้างแผนผังใหม่
-          </button>
-          
-          {selectedFlowchart && (
-            <>
-              <button
-                onClick={() => {
-                  setIsEditing(true);
-                  setShowFlowchartForm(true);
-                }}
-                className="bg-yellow-600 text-white px-4 py-2 rounded-md hover:bg-yellow-700 transition-colors"
-              >
-                แก้ไขข้อมูล
-              </button>
-              
-              <button
-                onClick={() => handleDeleteFlowchart(selectedFlowchart.id)}
-                className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors"
-              >
-                ลบแผนผัง
-              </button>
-            </>
-          )}
-        </div>
-      </div>
+            {flowcharts.map((fc) => (
+              <Option key={fc.id} value={fc.id}>
+                {fc.title}
+              </Option>
+            ))}
+          </Select>
+        </Col>
+        
+        <Col>
+          <Space>
+            <Button 
+              type="primary" 
+              icon={<PlusOutlined />} 
+              onClick={() => {
+                setIsEditing(false);
+                setShowFlowchartForm(true);
+              }}
+            >
+              สร้างแผนผังใหม่
+            </Button>
+            
+            {selectedFlowchart && (
+              <>
+                <Button 
+                  type="default" 
+                  icon={<EditOutlined />}
+                  onClick={() => {
+                    setIsEditing(true);
+                    setShowFlowchartForm(true);
+                  }}
+                >
+                  แก้ไขข้อมูล
+                </Button>
+                
+                <Button 
+                  type="default" 
+                  danger
+                  icon={<DeleteOutlined />}
+                  onClick={() => handleDeleteFlowchart(selectedFlowchart.id)}
+                >
+                  ลบแผนผัง
+                </Button>
+              </>
+            )}
+          </Space>
+        </Col>
+      </Row>
       
       {selectedFlowchart ? (
-        <div>
+        <Card>
           <div className="mb-4">
-            <h2 className="text-xl font-semibold">{selectedFlowchart.title}</h2>
+            <Title level={4}>{selectedFlowchart.title}</Title>
             {selectedFlowchart.description && (
-              <p className="text-gray-600 mt-1">{selectedFlowchart.description}</p>
+              <Text type="secondary">{selectedFlowchart.description}</Text>
             )}
           </div>
           
-          <div className="bg-white p-4 rounded-lg shadow-md">
-            <FlowchartEditor
-              initialContent={currentContent}
-              onSave={handleSaveFlowchartContent}
-            />
-          </div>
-        </div>
+          <FlowchartEditor
+            initialContent={currentContent}
+            onSave={handleSaveFlowchartContent}
+          />
+        </Card>
       ) : (
-        <div className="bg-gray-100 p-8 rounded-lg text-center">
-          <p className="text-gray-600">
-            ยังไม่มีแผนผัง กรุณาสร้างแผนผังใหม่
-          </p>
-        </div>
+        <Card>
+          <div className="text-center">
+            <Text type="secondary">
+              ยังไม่มีแผนผัง กรุณาสร้างแผนผังใหม่
+            </Text>
+          </div>
+        </Card>
       )}
       
       {showFlowchartForm && (

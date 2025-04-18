@@ -1,19 +1,27 @@
-// src/components/public-view/PublicFlowchart.tsx
 "use client";
 
 import { useState } from "react";
+import dynamic from 'next/dynamic';
+import { 
+  Card, 
+  Select, 
+  Typography, 
+  Empty, 
+  Space 
+} from "antd";
 import ReactFlow, {
   MiniMap,
   Controls,
   Background,
-  Node,
-  Edge
 } from "reactflow";
 import "reactflow/dist/style.css";
 import FlowStartNode from "@/components/flowchart/nodes/FlowStartNode";
 import FlowEndNode from "@/components/flowchart/nodes/FlowEndNode";
 import FlowProcessNode from "@/components/flowchart/nodes/FlowProcessNode";
 import FlowDecisionNode from "@/components/flowchart/nodes/FlowDecisionNode";
+
+const { Title, Paragraph, Text } = Typography;
+const { Option } = Select;
 
 interface Flowchart {
   id: string;
@@ -65,36 +73,46 @@ export default function PublicFlowchart({ flowcharts }: PublicFlowchartProps) {
     : { nodes: [], edges: [] };
   
   return (
-    <div>
+    <Card>
       {flowcharts.length > 0 ? (
-        <div>
-          <div className="mb-6">
-            <label htmlFor="flowchart-select" className="block text-sm font-medium text-gray-700 mb-2">
-              เลือกแผนผัง
-            </label>
-            <select
-              id="flowchart-select"
+        <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+          <div>
+            <Text strong>เลือกแผนผัง</Text>
+            <Select
+              style={{ width: '100%' }}
               value={selectedFlowchartId}
-              onChange={(e) => setSelectedFlowchartId(e.target.value)}
-              className="w-full md:w-auto px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              onChange={(value) => setSelectedFlowchartId(value)}
+              placeholder="เลือกแผนผัง"
             >
               {flowcharts.map((flowchart) => (
-                <option key={flowchart.id} value={flowchart.id}>
+                <Option key={flowchart.id} value={flowchart.id}>
                   {flowchart.title}
-                </option>
+                </Option>
               ))}
-            </select>
+            </Select>
           </div>
           
           {selectedFlowchart && (
-            <div>
-              <h2 className="text-xl font-semibold mb-2">{selectedFlowchart.title}</h2>
+            <Space direction="vertical" size="small" style={{ width: '100%' }}>
+              <Title level={4} style={{ marginBottom: 0 }}>
+                {selectedFlowchart.title}
+              </Title>
               
               {selectedFlowchart.description && (
-                <p className="text-gray-600 mb-4">{selectedFlowchart.description}</p>
+                <Paragraph type="secondary">
+                  {selectedFlowchart.description}
+                </Paragraph>
               )}
               
-              <div className="bg-white rounded-lg shadow-sm overflow-hidden mt-4 h-[500px] border border-gray-300">
+              <div 
+                style={{ 
+                  width: '100%', 
+                  height: '500px', 
+                  border: '1px solid #d9d9d9', 
+                  borderRadius: '8px',
+                  overflow: 'hidden'
+                }}
+              >
                 <ReactFlow
                   nodes={nodes}
                   edges={edges}
@@ -109,14 +127,15 @@ export default function PublicFlowchart({ flowcharts }: PublicFlowchartProps) {
                   <Background />
                 </ReactFlow>
               </div>
-            </div>
+            </Space>
           )}
-        </div>
+        </Space>
       ) : (
-        <div className="text-center py-8 text-gray-500">
-          <p>ยังไม่มีข้อมูลแผนผัง</p>
-        </div>
+        <Empty 
+          description="ยังไม่มีข้อมูลแผนผัง" 
+          style={{ margin: '20px 0' }} 
+        />
       )}
-    </div>
+    </Card>
   );
 }

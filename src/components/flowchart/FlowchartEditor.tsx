@@ -2,6 +2,21 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { 
+  Select, 
+  Button, 
+  Input, 
+  Space, 
+  Row, 
+  Col, 
+  message 
+} from "antd";
+import { 
+  PlusOutlined, 
+  EditOutlined, 
+  DeleteOutlined, 
+  SaveOutlined 
+} from "@ant-design/icons";
 import ReactFlow, {
   MiniMap,
   Controls,
@@ -28,6 +43,8 @@ const nodeTypes = {
   process: FlowProcessNode,
   decision: FlowDecisionNode,
 };
+
+const { Option } = Select;
 
 interface FlowchartEditorProps {
   initialContent: string;
@@ -127,7 +144,15 @@ export default function FlowchartEditor({
     const newNode: Node = {
       id: newId,
       type: selectedNodeType,
-      data: { label: `${selectedNodeType === 'start' ? 'เริ่มต้น' : selectedNodeType === 'end' ? 'สิ้นสุด' : selectedNodeType === 'process' ? 'กระบวนการ' : 'เงื่อนไข'}` },
+      data: { 
+        label: selectedNodeType === 'start' 
+          ? 'เริ่มต้น' 
+          : selectedNodeType === 'end' 
+            ? 'สิ้นสุด' 
+            : selectedNodeType === 'process' 
+              ? 'กระบวนการ' 
+              : 'เงื่อนไข' 
+      },
       position: { x: 100, y: 100 + nodes.length * 100 },
     };
     
@@ -157,6 +182,7 @@ export default function FlowchartEditor({
       edges,
     };
     onSave(JSON.stringify(flowchartData));
+    message.success('บันทึกแผนผังสำเร็จ');
   };
   
   // อัปเดต nodes และ edges เมื่อ initialContent เปลี่ยน
@@ -168,60 +194,69 @@ export default function FlowchartEditor({
   
   return (
     <div className="flex flex-col h-[600px]">
-      <div className="flex flex-col md:flex-row justify-between mb-4 gap-4">
-        <div className="flex items-center gap-2">
-          <select
-            value={selectedNodeType}
-            onChange={(e) => setSelectedNodeType(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="process">กระบวนการ</option>
-            <option value="decision">เงื่อนไข</option>
-            <option value="start">จุดเริ่มต้น</option>
-            <option value="end">จุดสิ้นสุด</option>
-          </select>
-          
-          <button
-            onClick={addNode}
-            className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors"
-          >
-            เพิ่ม Node
-          </button>
-          
-          {selectedNode && (
-            <>
-              <input
-                type="text"
-                value={nodeName}
-                onChange={handleNodeNameChange}
-                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="ชื่อ Node"
-              />
-              
-              <button
-                onClick={updateNodeName}
-                className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
-              >
-                เปลี่ยนชื่อ Node
-              </button>
-              
-              <button
-                onClick={deleteSelectedNode}
-                className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors"
-              >
-                ลบ Node
-              </button>
-            </>
-          )}
-        </div>
+      <Row gutter={[16, 16]} wrap={true} className="mb-4">
+        <Col xs={24} md={16}>
+          <Space wrap>
+            <Select
+              style={{ width: 150 }}
+              value={selectedNodeType}
+              onChange={(value) => setSelectedNodeType(value)}
+              placeholder="เลือกประเภท Node"
+            >
+              <Option value="process">กระบวนการ</Option>
+              <Option value="decision">เงื่อนไข</Option>
+              <Option value="start">จุดเริ่มต้น</Option>
+              <Option value="end">จุดสิ้นสุด</Option>
+            </Select>
+            
+            <Button 
+              type="primary" 
+              icon={<PlusOutlined />} 
+              onClick={addNode}
+            >
+              เพิ่ม Node
+            </Button>
+            
+            {selectedNode && (
+              <>
+                <Input
+                  style={{ width: 200 }}
+                  value={nodeName}
+                  onChange={handleNodeNameChange}
+                  placeholder="ชื่อ Node"
+                />
+                
+                <Button 
+                  type="default" 
+                  icon={<EditOutlined />}
+                  onClick={updateNodeName}
+                >
+                  เปลี่ยนชื่อ Node
+                </Button>
+                
+                <Button 
+                  type="default" 
+                  danger
+                  icon={<DeleteOutlined />}
+                  onClick={deleteSelectedNode}
+                >
+                  ลบ Node
+                </Button>
+              </>
+            )}
+          </Space>
+        </Col>
         
-        <button
-          onClick={saveFlowchart}
-          className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
-        >
-          บันทึกแผนผัง
-        </button>
-      </div>
+        <Col xs={24} md={8} style={{ textAlign: 'right' }}>
+          <Button 
+            type="primary" 
+            icon={<SaveOutlined />}
+            onClick={saveFlowchart}
+          >
+            บันทึกแผนผัง
+          </Button>
+        </Col>
+      </Row>
       
       <div className="flex-grow border border-gray-300 rounded-md overflow-hidden">
         <ReactFlow

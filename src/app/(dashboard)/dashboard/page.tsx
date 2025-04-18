@@ -26,7 +26,7 @@ export default function DashboardPage() {
       
       <Row gutter={[16, 16]} className="mt-6">
         <Col xs={24} sm={12} lg={6}>
-          <Card bordered={false}>
+          <Card >
             <Statistic
               title="แผนงานประจำปี"
               value={stats.yearPlanCount}
@@ -37,7 +37,7 @@ export default function DashboardPage() {
         </Col>
         
         <Col xs={24} sm={12} lg={6}>
-          <Card bordered={false}>
+          <Card >
             <Statistic
               title="รายการสิ่งที่ต้องทำ"
               value={stats.todoCount}
@@ -48,7 +48,7 @@ export default function DashboardPage() {
         </Col>
         
         <Col xs={24} sm={12} lg={6}>
-          <Card bordered={false}>
+          <Card >
             <Statistic
               title="งานที่เสร็จแล้ว"
               value={stats.completedTasks}
@@ -59,7 +59,7 @@ export default function DashboardPage() {
         </Col>
         
         <Col xs={24} sm={12} lg={6}>
-          <Card bordered={false}>
+          <Card >
             <Statistic
               title="งานที่รอดำเนินการ"
               value={stats.pendingTasks}

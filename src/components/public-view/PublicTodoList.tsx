@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Select, Table, Tag, Typography, Card } from 'antd';
+import { Select, Table, Tag, Typography, Card, Space } from 'antd';
 import { ColumnsType } from 'antd/es/table';
 
 // Local type definitions
@@ -122,37 +122,48 @@ export default function PublicTodoList({ todoLists }: PublicTodoListProps) {
       title: 'รายการ',
       dataIndex: 'title',
       key: 'title',
+      width: 200,
       render: (text, record) => (
-        <div>
+        <Space direction="vertical" size={0}>
           <Typography.Text strong>{text}</Typography.Text>
           {record.description && (
-            <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
+            <Typography.Paragraph 
+              type="secondary" 
+              style={{ marginBottom: 0 }}
+              ellipsis={{ tooltip: record.description }}
+            >
               {record.description}
             </Typography.Paragraph>
           )}
-        </div>
+        </Space>
       ),
+      responsive: ['md'],
     },
     {
       title: 'ประเภท',
       dataIndex: 'type',
       key: 'type',
+      width: 100,
       render: (type: TodoType) => todoTypeLabels[type],
+      responsive: ['md'],
     },
     {
       title: 'ความสำคัญ',
       dataIndex: 'priority',
       key: 'priority',
+      width: 100,
       render: (priority: Priority) => (
         <Tag color={priorityColors[priority]}>
           {priorityLabels[priority]}
         </Tag>
       ),
+      responsive: ['md'],
     },
     {
       title: 'วันที่ครบกำหนด',
       dataIndex: 'dueDate',
       key: 'dueDate',
+      width: 150,
       render: (dueDate: Date, record: TodoList) => {
         const dateStr = new Date(dueDate).toLocaleDateString('th-TH', {
           day: 'numeric',
@@ -171,6 +182,7 @@ export default function PublicTodoList({ todoLists }: PublicTodoListProps) {
       title: 'สถานะ',
       dataIndex: 'status',
       key: 'status',
+      width: 120,
       render: (status: TodoStatus) => (
         <Tag color={todoStatusColors[status]}>
           {todoStatusLabels[status]}
@@ -181,43 +193,64 @@ export default function PublicTodoList({ todoLists }: PublicTodoListProps) {
   
   return (
     <Card>
-      <div style={{ marginBottom: 16, display: 'flex', gap: 16 }}>
-        <Select
-          style={{ width: 200 }}
-          value={activeFilter.type}
-          onChange={(value: TodoType | "ALL") => setActiveFilter(prev => ({ ...prev, type: value }))}
-          placeholder="กรองตามประเภท"
+      <Space 
+        direction="vertical" 
+        size="middle" 
+        style={{ width: '100%' }}
+      >
+        <Space 
+          direction="horizontal" 
+          size="middle" 
+          style={{ 
+            width: '100%', 
+            flexWrap: 'wrap', 
+            justifyContent: 'flex-start' 
+          }}
         >
-          <Select.Option value="ALL">ทั้งหมด</Select.Option>
-          <Select.Option value="DAILY">รายวัน</Select.Option>
-          <Select.Option value="WEEKLY">รายสัปดาห์</Select.Option>
-          <Select.Option value="MONTHLY">รายเดือน</Select.Option>
-        </Select>
+          <Select
+            style={{ width: 200 }}
+            className="w-full sm:w-auto"
+            value={activeFilter.type}
+            onChange={(value: TodoType | "ALL") => setActiveFilter(prev => ({ ...prev, type: value }))}
+            placeholder="กรองตามประเภท"
+          >
+            <Select.Option value="ALL">ทั้งหมด</Select.Option>
+            <Select.Option value="DAILY">รายวัน</Select.Option>
+            <Select.Option value="WEEKLY">รายสัปดาห์</Select.Option>
+            <Select.Option value="MONTHLY">รายเดือน</Select.Option>
+          </Select>
+          
+          <Select
+            style={{ width: 200 }}
+            className="w-full sm:w-auto"
+            value={activeFilter.status}
+            onChange={(value: TodoStatus | "ALL") => setActiveFilter(prev => ({ ...prev, status: value }))}
+            placeholder="กรองตามสถานะ"
+          >
+            <Select.Option value="ALL">ทุกสถานะ</Select.Option>
+            <Select.Option value="PENDING">รอดำเนินการ</Select.Option>
+            <Select.Option value="IN_PROGRESS">กำลังดำเนินการ</Select.Option>
+            <Select.Option value="COMPLETED">เสร็จสิ้น</Select.Option>
+            <Select.Option value="CANCELLED">ยกเลิก</Select.Option>
+          </Select>
+        </Space>
         
-        <Select
-          style={{ width: 200 }}
-          value={activeFilter.status}
-          onChange={(value: TodoStatus | "ALL") => setActiveFilter(prev => ({ ...prev, status: value }))}
-          placeholder="กรองตามสถานะ"
-        >
-          <Select.Option value="ALL">ทุกสถานะ</Select.Option>
-          <Select.Option value="PENDING">รอดำเนินการ</Select.Option>
-          <Select.Option value="IN_PROGRESS">กำลังดำเนินการ</Select.Option>
-          <Select.Option value="COMPLETED">เสร็จสิ้น</Select.Option>
-          <Select.Option value="CANCELLED">ยกเลิก</Select.Option>
-        </Select>
-      </div>
-      
-      <Table 
-        columns={columns} 
-        dataSource={filteredTodoLists} 
-        rowKey="id"
-        locale={{ emptyText: 'ไม่พบรายการ' }}
-        pagination={{ 
-          showSizeChanger: true,
-          pageSizeOptions: ['10', '20', '50'],
-        }}
-      />
+        <div style={{ width: '100%', overflowX: 'auto' }}>
+          <Table 
+            columns={columns} 
+            dataSource={filteredTodoLists} 
+            rowKey="id"
+            locale={{ emptyText: 'ไม่พบรายการ' }}
+            pagination={{ 
+              showSizeChanger: true,
+              pageSizeOptions: ['10', '20', '50'],
+              responsive: true
+            }}
+            scroll={{ x: true }}
+            style={{ minWidth: 600 }}
+          />
+        </div>
+      </Space>
     </Card>
   );
 }

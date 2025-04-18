@@ -9,6 +9,8 @@ import TaskForm from "@/components/task-tracking/TaskForm";
 import TaskDetailModal from "@/components/task-tracking/TaskDetailModal";
 import { useRouter } from "next/navigation";
 import { createTask, updateTaskStatus, deleteTask } from "@/server/actions/task-tracking-actions";
+import { Button, Modal } from "antd";
+import { App } from 'antd';
 
 interface TaskWithProgress extends Task {
   progress: any[];
@@ -26,6 +28,7 @@ export default function TaskTrackingManager({
   yearPlanActivities,
   userId 
 }: TaskTrackingManagerProps) {
+  const { modal } = App.useApp(); // Add this hook
   const router = useRouter();
   const [tasks, setTasks] = useState<TaskWithProgress[]>(initialTasks);
   const [filteredTasks, setFilteredTasks] = useState<TaskWithProgress[]>(initialTasks);
@@ -35,38 +38,31 @@ export default function TaskTrackingManager({
   const [isEditing, setIsEditing] = useState(false);
   const [activeFilter, setActiveFilter] = useState<{
     status: TaskStatus | "ALL";
-    startDate: string | null;
-    endDate: string | null;
+    dateRange: [Date | null, Date | null];
   }>({
     status: "ALL",
-    startDate: null,
-    endDate: null,
+    dateRange: [null, null],
   });
   
   useEffect(() => {
-    // ฟิลเตอร์ตามสถานะและวันที่
     let filtered = [...tasks];
     
     if (activeFilter.status !== "ALL") {
       filtered = filtered.filter((task) => task.status === activeFilter.status);
     }
     
-    if (activeFilter.startDate) {
-      const startDate = new Date(activeFilter.startDate);
+    if (activeFilter.dateRange[0]) {
       filtered = filtered.filter(
-        (task) => new Date(task.startDateTime) >= startDate
+        (task) => new Date(task.startDateTime) >= activeFilter.dateRange[0]!
       );
     }
     
-    if (activeFilter.endDate) {
-      const endDate = new Date(activeFilter.endDate);
-      endDate.setHours(23, 59, 59);
-      filtered = filtered.filter(
-        (task) => new Date(task.startDateTime) <= endDate
+    if (activeFilter.dateRange[1]) {
+      filtered = filtered.filter(  
+        (task) => new Date(task.startDateTime) <= activeFilter.dateRange[1]!
       );
     }
     
-    // เรียงตามวันที่เริ่มต้น (ล่าสุดอยู่บนสุด)
     filtered.sort((a, b) => {
       return new Date(b.startDateTime).getTime() - new Date(a.startDateTime).getTime();
     });
@@ -76,10 +72,9 @@ export default function TaskTrackingManager({
   
   const handleFilterChange = (
     status: TaskStatus | "ALL",
-    startDate: string | null,
-    endDate: string | null
+    dateRange: [Date | null, Date | null]
   ) => {
-    setActiveFilter({ status, startDate, endDate });
+    setActiveFilter({ status, dateRange });
   };
   
   const handleCreateTask = async (data: any) => {
@@ -89,11 +84,8 @@ export default function TaskTrackingManager({
         userId,
       });
       
-      // เนื่องจาก newTask อาจไม่มีข้อมูล progress และ activity ที่เชื่อมโยง
-      // เราต้องดึงข้อมูลใหม่เพื่อให้แสดงผลถูกต้อง
       router.refresh();
       
-      // อัปเดต state ชั่วคราว
       const activity = data.activityId 
         ? yearPlanActivities.find(act => act.id === data.activityId) || null
         : null;
@@ -107,7 +99,10 @@ export default function TaskTrackingManager({
         ...tasks,
       ]);
       
+      // Reset all modals and forms
       setShowTaskForm(false);
+      setSelectedTask(null);
+      setIsEditing(false);
     } catch (error) {
       console.error("Error creating task:", error);
     }
@@ -115,9 +110,32 @@ export default function TaskTrackingManager({
   
   const handleUpdateTask = async (data: any) => {
     try {
-      const updatedTask = await updateTaskStatus(data.id, data);
+      // Check if selectedTask exists and has an id
+      if (!selectedTask || !selectedTask.id) {
+        console.error('No task selected for update');
+        return;
+      }
+  
+      // Prepare clean data for update
+      const updateData = {
+        id: selectedTask.id, // Use the id from selectedTask
+        title: data.title,
+        description: data.description,
+        startDateTime: data.startDateTime instanceof Date 
+          ? data.startDateTime.toISOString() 
+          : data.startDateTime,
+        endDateTime: data.endDateTime instanceof Date 
+          ? data.endDateTime.toISOString() 
+          : data.endDateTime,
+        location: data.location,
+        notes: data.notes,
+        deliveryDetails: data.deliveryDetails,
+        status: data.status,
+        activityId: data.activityId,
+      };
+  
+      const updatedTask = await updateTaskStatus(updateData.id, updateData);
       
-      // อัปเดตค่าใน state
       setTasks(
         tasks.map((task) => {
           if (task.id === updatedTask.id) {
@@ -137,6 +155,7 @@ export default function TaskTrackingManager({
       router.refresh();
     } catch (error) {
       console.error("Error updating task:", error);
+      // Optionally show an error message to the user
     }
   };
   
@@ -144,7 +163,6 @@ export default function TaskTrackingManager({
     try {
       const updatedTask = await updateTaskStatus(taskId, { status: newStatus });
       
-      // อัปเดตค่าใน state
       setTasks(
         tasks.map((task) => {
           if (task.id === updatedTask.id) {
@@ -158,7 +176,7 @@ export default function TaskTrackingManager({
         })
       );
       
-      router.refresh();
+      router.refresh();  
     } catch (error) {
       console.error("Error updating task status:", error);
     }
@@ -168,84 +186,125 @@ export default function TaskTrackingManager({
     setSelectedTask(task);
     setIsEditing(true);
     setShowTaskForm(true);
-  };
-  
-  const handleDeleteTask = async (taskId: string) => {
-    if (confirm("คุณต้องการลบงานนี้ใช่หรือไม่?")) {
-      try {
-        await deleteTask(taskId);
-        
-        // อัปเดตค่าใน state
-        setTasks(tasks.filter((task) => task.id !== taskId));
-        
-        router.refresh();
-      } catch (error) {
-        console.error("Error deleting task:", error);
-      }
+    
+    // Reset task detail modal
+    if (showTaskDetail) {
+      setShowTaskDetail(false);
     }
   };
   
+  const handleDeleteTask = async (taskId: string) => {
+    modal.confirm({
+      title: 'ยืนยันการลบงาน',
+      content: 'คุณแน่ใจหรือไม่ว่าต้องการลบงานนี้?',
+      okType: 'danger',
+      onOk: async () => {
+        try {
+          await deleteTask(taskId);
+          
+          setTasks(tasks.filter((task) => task.id !== taskId));
+          
+          // Reset modal states
+          setShowTaskDetail(false);
+          setSelectedTask(null);
+          
+          router.refresh();
+        } catch (error) {
+          console.error("Error deleting task:", error);
+          // Optionally show an error message
+          modal.error({
+            title: 'เกิดข้อผิดพลาด',
+            content: 'ไม่สามารถลบงานได้'
+          });
+        }
+      },
+    });
+  };
+  
   const handleViewTaskDetail = (task: TaskWithProgress) => {
-    setSelectedTask(task);
+    setSelectedTask(task);  
     setShowTaskDetail(true);
+    
+    // Close task form if open
+    if (showTaskForm) {
+      setShowTaskForm(false);
+      setIsEditing(false);
+    }
+  };
+  
+  const handleCloseTaskDetail = () => {
+    setShowTaskDetail(false);
+    setSelectedTask(null);
+  };
+  
+  const handleCloseTaskForm = () => {
+    setShowTaskForm(false);
+    setSelectedTask(null);
+    setIsEditing(false);
   };
   
   return (
-    <div>
-      <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
+    <>
+      <div className="mb-4 flex flex-col xl:flex-row xl:items-center justify-between gap-4">
         <TaskFilter
-          activeFilter={activeFilter}
+          activeFilter={activeFilter} 
           onFilterChange={handleFilterChange}
         />
         
-        <button
+        <Button
+          type="primary"
           onClick={() => {
             setIsEditing(false);
             setSelectedTask(null);
             setShowTaskForm(true);
+            
+            // Close task detail if open
+            if (showTaskDetail) {
+              setShowTaskDetail(false);
+            }
           }}
-          className="md:w-auto w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
         >
           เพิ่มงานใหม่
-        </button>
+        </Button>
       </div>
       
       <TaskTable
         tasks={filteredTasks}
         onStatusChange={handleStatusChange}
-        onEdit={handleEditTask}
+        onEdit={handleEditTask}  
         onDelete={handleDeleteTask}
         onViewDetail={handleViewTaskDetail}
       />
       
       {showTaskForm && (
-        <TaskForm
-          onClose={() => {
-            setShowTaskForm(false);
-            setIsEditing(false);
-            setSelectedTask(null);
-          }}
-          onSubmit={isEditing ? handleUpdateTask : handleCreateTask}
-          initialData={isEditing ? selectedTask : null}
-          isEditing={isEditing}
-          yearPlanActivities={yearPlanActivities}
-        />
+        <Modal
+          title={isEditing ? "แก้ไขงาน" : "เพิ่มงานใหม่"}
+          open={showTaskForm} 
+          onCancel={handleCloseTaskForm}
+          footer={null}
+        >
+          <TaskForm
+            onClose={handleCloseTaskForm}
+            onSubmit={isEditing ? handleUpdateTask : handleCreateTask}
+            initialData={isEditing ? selectedTask : null}
+            isEditing={isEditing}
+            yearPlanActivities={yearPlanActivities}
+          />
+        </Modal>
       )}
       
       {showTaskDetail && selectedTask && (
         <TaskDetailModal
           task={selectedTask}
-          onClose={() => {
-            setShowTaskDetail(false);
-            setSelectedTask(null);
-          }}
+          onClose={handleCloseTaskDetail}
           onEdit={() => {
-            setShowTaskDetail(false);
+            handleCloseTaskDetail();
             setIsEditing(true);
             setShowTaskForm(true);
           }}
+          visible={showTaskDetail}
         />
       )}
-    </div>
+    </>
   );
 }

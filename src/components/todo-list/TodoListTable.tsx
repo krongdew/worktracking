@@ -1,5 +1,21 @@
-import React from 'react';
-import { Table, Tag, Select, Button, Popconfirm } from 'antd';
+import React, { useState } from 'react';
+import { 
+  Table, 
+  Tag, 
+  Select, 
+  Button, 
+  Popconfirm, 
+  Space, 
+  Typography, 
+  Dropdown, 
+  Modal 
+} from 'antd';
+import { 
+  MoreOutlined, 
+  EditOutlined, 
+  DeleteOutlined 
+} from '@ant-design/icons';
+import type { ColumnsType } from 'antd/es/table';
 import { 
   TodoList, 
   TodoStatus, 
@@ -7,6 +23,7 @@ import {
   Priority 
 } from "@prisma/client";
 
+const { Text } = Typography;
 const { Option } = Select;
 
 interface TodoListTableProps {
@@ -22,6 +39,8 @@ export default function TodoListTable({
   onEdit,
   onDelete,
 }: TodoListTableProps) {
+  const [selectedTodo, setSelectedTodo] = useState<TodoList | null>(null);
+
   const todoTypeLabels: Record<TodoType, string> = {
     DAILY: "รายวัน",
     WEEKLY: "รายสัปดาห์",
@@ -42,79 +61,99 @@ export default function TodoListTable({
     URGENT: "red",
   };
   
-  const columns = [
+  const formatDate = (dueDate: Date, record: TodoList) => {
+    const formattedDate = new Date(dueDate).toLocaleDateString('th-TH', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    });
+    const isPastDue = new Date(dueDate) < new Date() && record.status !== 'COMPLETED';
+    
+    return (
+      <span style={{ color: isPastDue ? 'red' : 'inherit' }}>
+        {formattedDate}
+      </span>
+    );
+  };
+
+  const columns: ColumnsType<TodoList> = [
     {
       title: 'รายการ',
       dataIndex: 'title',
       key: 'title',
+      width: 200,
       render: (text: string, record: TodoList) => (
-        <div>
-          <div className="font-medium">{text}</div>
+        <Space direction="vertical" size={0}>
+          <Text strong>{text}</Text>
           {record.description && (
-            <div className="text-sm text-gray-600">{record.description}</div>
+            <Text 
+              type="secondary" 
+              ellipsis={{ tooltip: record.description }}
+            >
+              {record.description}
+            </Text>
           )}
-        </div>
+        </Space>
       ),
+      responsive: ['md'],
     },
     {
       title: 'ประเภท',
       dataIndex: 'type',
       key: 'type',
+      width: 100,
       render: (type: TodoType) => todoTypeLabels[type],
+      responsive: ['md'],
     },
     {
       title: 'ความสำคัญ',
       dataIndex: 'priority',
       key: 'priority',
+      width: 100,
       render: (priority: Priority) => (
         <Tag color={priorityColors[priority]}>
           {priority}
         </Tag>
       ),
+      responsive: ['md'],
     },
     {
       title: 'วันที่ครบกำหนด',
       dataIndex: 'dueDate',
       key: 'dueDate',
-      render: (dueDate: Date, record: TodoList) => {
-        const formattedDate = new Date(dueDate).toLocaleDateString('th-TH', {
-          day: 'numeric',
-          month: 'long',
-          year: 'numeric'
-        });
-        const isPastDue = new Date(dueDate) < new Date() && record.status !== 'COMPLETED';
-        
-        return (
-          <span style={{ color: isPastDue ? 'red' : 'inherit' }}>
-            {formattedDate}
-          </span>
-        );
-      },
+      width: 150,
+      render: (dueDate: Date, record: TodoList) => formatDate(dueDate, record),
+      responsive: ['md'],
     },
     {
       title: 'สถานะ',
       dataIndex: 'status',
       key: 'status',
+      width: 150,
       render: (status: TodoStatus, record: TodoList) => (
-        <Select
-          value={status}
-          style={{ width: 150 }}
-          onChange={(newStatus) => onStatusChange(record.id, newStatus)}
+        <Dropdown
+          menu={{
+            items: Object.values(TodoStatus).map(statusOption => ({
+              key: statusOption,
+              label: todoStatusLabels[statusOption],
+              onClick: () => onStatusChange(record.id, statusOption)
+            })),
+          }}
+          trigger={['click']}
         >
-          {Object.values(TodoStatus).map(statusOption => (
-            <Option key={statusOption} value={statusOption}>
-              {todoStatusLabels[statusOption]}
-            </Option>
-          ))}
-        </Select>
+          <Tag color={status === 'COMPLETED' ? 'green' : 'default'} style={{ cursor: 'pointer' }}>
+            {todoStatusLabels[status]}
+          </Tag>
+        </Dropdown>
       ),
     },
     {
       title: 'การดำเนินการ',
       key: 'actions',
+      width: 120,
       render: (record: TodoList) => (
-        <div className="flex gap-2">
-          <Button type="link" onClick={() => onEdit(record)}>
+        <Space>
+          <Button type="text" onClick={() => onEdit(record)}>
             แก้ไข
           </Button>
           <Popconfirm
@@ -124,25 +163,90 @@ export default function TodoListTable({
             okText="ใช่"
             cancelText="ไม่"
           >
-            <Button type="link" danger>
+            <Button type="text" danger>
               ลบ
             </Button>
           </Popconfirm>
-        </div>
+        </Space>
       ),
+      responsive: ['md'],
     },
+    {
+      title: '',
+      key: 'mobile-actions',
+      width: 60,
+      render: (record: TodoList) => (
+        <Dropdown
+          menu={{
+            items: [
+              {
+                key: 'edit',
+                label: 'แก้ไข',
+                icon: <EditOutlined />,
+                onClick: () => onEdit(record)
+              },
+              {
+                key: 'delete',
+                label: 'ลบ',
+                icon: <DeleteOutlined />,
+                danger: true,
+                onClick: () => {
+                  setSelectedTodo(record);
+                  Modal.confirm({
+                    title: 'ยืนยันการลบ',
+                    content: 'คุณต้องการลบรายการนี้ใช่หรือไม่?',
+                    okText: 'ใช่',
+                    cancelText: 'ไม่',
+                    onOk: () => onDelete(record.id)
+                  });
+                }
+              },
+              {
+                key: 'details',
+                label: 'รายละเอียด',
+                onClick: () => {
+                  setSelectedTodo(record);
+                  Modal.info({
+                    title: 'รายละเอียดรายการที่ต้องทำ',
+                    content: (
+                      <div>
+                        <p><strong>ชื่อ:</strong> {record.title}</p>
+                        <p><strong>คำอธิบาย:</strong> {record.description || '-'}</p>
+                        <p><strong>ประเภท:</strong> {todoTypeLabels[record.type]}</p>
+                        <p><strong>ความสำคัญ:</strong> {record.priority}</p>
+                        <p><strong>วันที่ครบกำหนด:</strong> {formatDate(record.dueDate, record)}</p>
+                        <p><strong>สถานะ:</strong> {todoStatusLabels[record.status]}</p>
+                      </div>
+                    ),
+                    okText: 'ปิด'
+                  });
+                }
+              }
+            ]
+          }}
+          trigger={['click']}
+        >
+          <Button type="text" icon={<MoreOutlined />} />
+        </Dropdown>
+      ),
+    }
   ];
 
   return (
-    <Table 
-      columns={columns} 
-      dataSource={todoLists} 
-      rowKey="id"
-      locale={{ emptyText: 'ไม่พบรายการที่ต้องทำ' }}
-      pagination={{
-        showSizeChanger: true,
-        pageSizeOptions: ['10', '20', '50'],
-      }}
-    />
+    <div style={{ width: '100%', overflowX: 'auto' }}>
+      <Table 
+        columns={columns} 
+        dataSource={todoLists} 
+        rowKey="id"
+        locale={{ emptyText: 'ไม่พบรายการที่ต้องทำ' }}
+        pagination={{
+          showSizeChanger: true,
+          pageSizeOptions: ['10', '20', '50'],
+          responsive: true
+        }}
+        style={{ minWidth: 600 }}
+        scroll={{ x: true }}
+      />
+    </div>
   );
 }

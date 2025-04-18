@@ -1,13 +1,24 @@
-// src/components/public-view/PublicTaskTracking.tsx
 "use client";
 
 import { useState, useEffect } from "react";
 import { TaskStatus, YearPlanActivity } from "@prisma/client";
 import dayjs from 'dayjs';
 
-import { Table, Select, DatePicker, Button, Progress, Tag } from 'antd';
+import { 
+  Table, 
+  Select, 
+  DatePicker, 
+  Button, 
+  Progress, 
+  Tag, 
+  Space, 
+  Card, 
+  Typography 
+} from 'antd';
+import type { ColumnsType } from 'antd/es/table';
 const { RangePicker } = DatePicker;
 const { Option } = Select;
+const { Text } = Typography;
 
 interface TaskProgress {
   id: string;
@@ -111,136 +122,162 @@ export default function PublicTaskTracking({ tasks }: PublicTaskTrackingProps) {
     return sortedProgress[0].percentComplete;
   };
 
-  const columns = [
+  const columns: ColumnsType<Task> = [
     {
       title: 'งาน',
       dataIndex: 'title',
       key: 'title',
+      width: 200,
       render: (_: any, task: Task) => (
-        <>
-          <div className="font-medium">{task.title}</div>
-          {task.description && <div className="text-gray-500">{task.description}</div>}
-        </>
+        <Space direction="vertical" size={0}>
+          <Text strong>{task.title}</Text>
+          {task.description && (
+            <Text 
+              type="secondary" 
+              ellipsis={{ tooltip: task.description }}
+            >
+              {task.description}
+            </Text>
+          )}
+        </Space>
       ),
+      responsive: ['md'],
     },
     {
       title: 'กิจกรรมจาก Year Plan',
       dataIndex: 'activity',
       key: 'activity', 
+      width: 150,
       render: (activity: YearPlanActivity) => activity ? activity.title : '-',
+      responsive: ['md'],
     },
     {
       title: 'วันและเวลา',
       dataIndex: 'startDateTime',
       key: 'startDateTime',
+      width: 200,
       render: (_: any, task: Task) => (
-        <>
-          <div>{formatDateTime(task.startDateTime)}</div>
+        <Space direction="vertical" size={0}>
+          <Text>{formatDateTime(task.startDateTime)}</Text>
           {task.endDateTime && (
-            <div className="text-gray-500">
+            <Text type="secondary">
               ถึง {formatDateTime(task.endDateTime)}
-            </div>
+            </Text>
           )}
-        </>
+        </Space>
       ),
     },
     {
       title: 'สถานที่',
       dataIndex: 'location',
       key: 'location',
+      width: 120,
       render: (location: string) => location || '-', 
+      responsive: ['md'],
     },
     {
       title: 'ความคืบหน้า',
       dataIndex: 'progress',
       key: 'progress', 
+      width: 120,
       render: (progress: TaskProgress[]) => (
-        <>
+        <Space direction="vertical" size={0}>
           <Progress percent={getLatestProgress(progress)} size="small" />
-          <div className="text-xs text-gray-500 mt-1">
+          <Text type="secondary" style={{ fontSize: 12 }}>
             {getLatestProgress(progress)}%
-          </div>
-        </>
+          </Text>
+        </Space>
       ),
     },
     {
       title: 'สถานะ',
       dataIndex: 'status',
       key: 'status',
+      width: 120,
       render: (status: TaskStatus) => (
         <Tag color={status === 'COMPLETED' ? 'green' : status === 'IN_PROGRESS' ? 'blue' : 'red'}>
           {taskStatusLabels[status]}
         </Tag>
       ),
     },
-    {
-      title: 'การดำเนินการ',
-      key: 'action',
-      render: (_: any, task: Task) => (
-        <Button type="link">ดูรายละเอียด</Button>
-      ),
-    },
   ];
   
   return (
-    <div>
-      <div className="mb-4 flex flex-col xl:flex-row xl:items-center gap-4">
-        <div className="flex flex-col sm:flex-row sm:items-center gap-4 flex-wrap">
-          
-          <div>
-            <span className="mr-2">สถานะ:</span>
-            <Select
-              value={activeFilter.status}
-              onChange={(value: TaskStatus | "ALL") => 
-                handleFilterChange(value, activeFilter.dateRange)
-              }
-            >
-              {taskStatuses.map((status) => (
-                <Option key={status.value} value={status.value}>
-                  {status.label}
-                </Option>
-              ))}
-            </Select>
+    <Card>
+      <Space 
+        direction="vertical" 
+        size="middle" 
+        style={{ width: '100%' }}
+      >
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 w-full">
+          <div className="flex flex-col sm:flex-row items-center gap-4 w-full">
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <Text>สถานะ:</Text>
+              <Select
+                style={{ width: 200 }}
+                className="flex-1 sm:flex-none"
+                value={activeFilter.status}
+                onChange={(value: TaskStatus | "ALL") => 
+                  handleFilterChange(value, activeFilter.dateRange)
+                }
+              >
+                {taskStatuses.map((status) => (
+                  <Option key={status.value} value={status.value}>
+                    {status.label}
+                  </Option>
+                ))}
+              </Select>
+            </div>
+            
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <Text>ช่วงวันที่:</Text>  
+              <RangePicker
+                style={{ width: 300 }}
+                className="flex-1 sm:flex-none"
+                value={[
+                  activeFilter.dateRange[0] ? dayjs(activeFilter.dateRange[0]) : null,
+                  activeFilter.dateRange[1] ? dayjs(activeFilter.dateRange[1]) : null
+                ]}
+                onChange={(dates) => {
+                  handleFilterChange(
+                    activeFilter.status,
+                    [
+                      dates && dates[0] ? dates[0].toDate() : null,
+                      dates && dates[1] ? dates[1].toDate() : null,
+                    ]
+                  );
+                }}
+              />
+            </div>
           </div>
-          
-          <div>
-            <span className="mr-2">ช่วงวันที่:</span>  
-            <RangePicker
-              value={[
-                activeFilter.dateRange[0] ? dayjs(activeFilter.dateRange[0]) : null,
-                activeFilter.dateRange[1] ? dayjs(activeFilter.dateRange[1]) : null
-              ]}
-              onChange={(dates) => {
-                handleFilterChange(
-                  activeFilter.status,
-                  [
-                    dates && dates[0] ? dates[0].toDate() : null,
-                    dates && dates[1] ? dates[1].toDate() : null,
-                  ]
-                );
-              }}
-              
-            />
-          </div>
+
+          <Button
+            onClick={() => handleFilterChange('ALL', [null, null])}
+            type="link"
+            className="self-end sm:self-auto"
+          >
+            รีเซ็ตฟิลเตอร์
+          </Button>
         </div>
 
-        <Button
-          onClick={() => handleFilterChange('ALL', [null, null])}
-          type="link"
-        >
-          รีเซ็ตฟิลเตอร์
-        </Button>
-        
-      </div>
-
-      <Table 
-        dataSource={filteredTasks}
-        columns={columns}
-        rowKey="id"
-        locale={{
-          emptyText: 'ไม่พบรายการงาน',
-        }}
-      />
-    </div>
+        <div style={{ width: '100%', overflowX: 'auto' }}>
+          <Table 
+            columns={columns}
+            dataSource={filteredTasks}
+            rowKey="id"
+            locale={{
+              emptyText: 'ไม่พบรายการงาน',
+            }}
+            pagination={{ 
+              showSizeChanger: true,
+              pageSizeOptions: ['10', '20', '50'],
+              responsive: true
+            }}
+            scroll={{ x: true }}
+            style={{ minWidth: 600 }}
+          />
+        </div>
+      </Space>
+    </Card>
   );
 }

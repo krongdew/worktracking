@@ -99,7 +99,7 @@ export default function HomePage() {
             <Col xs={24} sm={12} lg={6}>
               <Card
                 style={{ height: "100%" }}
-                bordered={false}
+                
                 className="hover:shadow-lg transition-shadow"
               >
                 <div style={{ textAlign: "center", marginBottom: 16 }}>
@@ -115,7 +115,7 @@ export default function HomePage() {
             <Col xs={24} sm={12} lg={6}>
               <Card
                 style={{ height: "100%" }}
-                bordered={false}
+                
                 className="hover:shadow-lg transition-shadow"
               >
                 <div style={{ textAlign: "center", marginBottom: 16 }}>
@@ -131,7 +131,7 @@ export default function HomePage() {
             <Col xs={24} sm={12} lg={6}>
               <Card
                 style={{ height: "100%" }}
-                bordered={false}
+                
                 className="hover:shadow-lg transition-shadow"
               >
                 <div style={{ textAlign: "center", marginBottom: 16 }}>
@@ -147,7 +147,7 @@ export default function HomePage() {
             <Col xs={24} sm={12} lg={6}>
               <Card
                 style={{ height: "100%" }}
-                bordered={false}
+                
                 className="hover:shadow-lg transition-shadow"
               >
                 <div style={{ textAlign: "center", marginBottom: 16 }}>

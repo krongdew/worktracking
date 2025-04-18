@@ -4,9 +4,28 @@
 import { Task, TaskStatus, YearPlanActivity } from "@prisma/client";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { updateTaskProgress } from "@/server/actions/task-tracking-actions";
 import { useRouter } from "next/navigation";
+import { 
+  Modal, 
+  Typography, 
+  Tag, 
+  Space, 
+  Descriptions, 
+  Form,
+  Input, 
+  Button, 
+  Slider, 
+  Progress, 
+  Card, 
+  Timeline,
+  Divider
+} from 'antd';
+import { EditOutlined } from '@ant-design/icons';
+
+const { Title, Text, Paragraph } = Typography;
+const { TextArea } = Input;
 
 interface TaskProgress {
   id: string;
@@ -24,12 +43,14 @@ interface TaskDetailModalProps {
   task: TaskWithRelations;
   onClose: () => void;
   onEdit: () => void;
+  visible: boolean;
 }
 
 export default function TaskDetailModal({
   task,
   onClose,
   onEdit,
+  visible = true,
 }: TaskDetailModalProps) {
   const router = useRouter();
   const [isSubmittingProgress, setIsSubmittingProgress] = useState(false);
@@ -42,6 +63,7 @@ export default function TaskDetailModal({
       0
     )
   );
+  const [form] = Form.useForm();
   
   const taskStatusLabels: Record<TaskStatus, string> = {
     PENDING: "รอดำเนินการ",
@@ -52,25 +74,21 @@ export default function TaskDetailModal({
   };
   
   const taskStatusColors: Record<TaskStatus, string> = {
-    PENDING: "bg-gray-100 text-gray-800",
-    IN_PROGRESS: "bg-blue-100 text-blue-800",
-    COMPLETED: "bg-green-100 text-green-800",
-    DELAYED: "bg-yellow-100 text-yellow-800",
-    CANCELLED: "bg-red-100 text-red-800",
+    PENDING: "default",
+    IN_PROGRESS: "processing",
+    COMPLETED: "success",
+    DELAYED: "warning",
+    CANCELLED: "error",
   };
   
-  // ฟังก์ชันสำหรับฟอร์แมตวันที่และเวลา
   const formatDateTime = (dateTime: Date) => {
     return format(new Date(dateTime), "d MMMM yyyy, HH:mm น.", {
       locale: th,
     });
   };
   
-  const handleAddProgress = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!progressDescription.trim()) {
-      alert("กรุณากรอกรายละเอียดความคืบหน้า");
+  const handleAddProgress = async (values: { description: string }) => {
+    if (!values.description.trim()) {
       return;
     }
     
@@ -78,10 +96,11 @@ export default function TaskDetailModal({
     
     try {
       await updateTaskProgress(task.id, {
-        description: progressDescription,
+        description: values.description,
         percentComplete: progressPercent,
       });
       
+      form.resetFields();
       setProgressDescription("");
       router.refresh();
     } catch (error) {
@@ -91,181 +110,177 @@ export default function TaskDetailModal({
     }
   };
   
+  const handleEdit = () => {
+    onClose(); // ปิด Modal นี้ก่อน
+    onEdit();  // จากนั้นจึงเรียก onEdit
+  };
+  
   // เรียงลำดับความคืบหน้าจากล่าสุดไปเก่าสุด
   const sortedProgress = [...task.progress].sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
   
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-      <div className="bg-white rounded-lg shadow-lg w-full max-w-2xl my-8">
-        <div className="p-4 border-b flex justify-between items-center">
-          <h2 className="text-lg font-semibold">รายละเอียดงาน</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700"
-          >
-            ปิด
-          </button>
+    <Modal
+      open={visible}
+      title="รายละเอียดงาน"
+      onCancel={() => {
+        // เพิ่มการเรียก onClose เมื่อปิด Modal
+        onClose();
+      }}
+      width={800}
+      maskClosable={true}
+      footer={[
+        <Button key="edit" type="primary" onClick={handleEdit} icon={<EditOutlined />}>
+          แก้ไขข้อมูลงาน
+        </Button>
+      ]}
+      styles={{ body: { maxHeight: "70vh", overflowY: "auto", padding: "24px" } }}
+    >
+      <Space direction="vertical" size="large" style={{ width: '100%' }}>
+        {/* เนื้อหาเดิม */}
+        <div>
+          <Title level={4}>{task.title}</Title>
+          
+          <Space style={{ marginBottom: 16 }}>
+            <Tag color={taskStatusColors[task.status]}>
+              {taskStatusLabels[task.status]}
+            </Tag>
+            
+            {task.activity && (
+              <Tag color="purple">{task.activity.title}</Tag>
+            )}
+          </Space>
+          
+          {task.description && (
+            <div style={{ marginBottom: 16 }}>
+              <Text type="secondary">รายละเอียด</Text>
+              <Paragraph style={{ whiteSpace: 'pre-line', marginTop: 4 }}>
+                {task.description}
+              </Paragraph>
+            </div>
+          )}
+          
+          <Descriptions bordered size="small" column={{ xs: 1, sm: 2 }}>
+            <Descriptions.Item label="เริ่มต้น">
+              {formatDateTime(task.startDateTime)}
+            </Descriptions.Item>
+            
+            {task.endDateTime && (
+              <Descriptions.Item label="สิ้นสุด">
+                {formatDateTime(task.endDateTime)}
+              </Descriptions.Item>
+            )}
+            
+            {task.location && (
+              <Descriptions.Item label="สถานที่">
+                {task.location}
+              </Descriptions.Item>
+            )}
+          </Descriptions>
+          
+          {task.notes && (
+            <div style={{ marginTop: 16 }}>
+              <Text type="secondary">หมายเหตุ</Text>
+              <Paragraph style={{ whiteSpace: 'pre-line', marginTop: 4 }}>
+                {task.notes}
+              </Paragraph>
+            </div>
+          )}
+          
+          {task.deliveryDetails && (
+            <div style={{ marginTop: 16 }}>
+              <Text type="secondary">รายละเอียดการส่งมอบงาน</Text>
+              <Paragraph style={{ whiteSpace: 'pre-line', marginTop: 4 }}>
+                {task.deliveryDetails}
+              </Paragraph>
+            </div>
+          )}
         </div>
         
-        <div className="p-4 space-y-6 max-h-[70vh] overflow-y-auto">
-          <div>
-            <h3 className="text-xl font-semibold mb-2">{task.title}</h3>
-            
-            <div className="flex items-center space-x-3 mb-4">
-              <span
-                className={`px-3 py-1 rounded-full text-xs font-medium ${
-                  taskStatusColors[task.status]
-                }`}
-              >
-                {taskStatusLabels[task.status]}
-              </span>
-              
-              {task.activity && (
-                <span className="px-3 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
-                  {task.activity.title}
-                </span>
-              )}
-            </div>
-            
-            {task.description && (
-              <div className="mb-4">
-                <h4 className="text-sm font-medium text-gray-700 mb-1">รายละเอียด</h4>
-                <p className="text-gray-800 whitespace-pre-line">{task.description}</p>
-              </div>
-            )}
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-              <div>
-                <h4 className="text-sm font-medium text-gray-700 mb-1">เริ่มต้น</h4>
-                <p className="text-gray-800">{formatDateTime(task.startDateTime)}</p>
-              </div>
-              
-              {task.endDateTime && (
-                <div>
-                  <h4 className="text-sm font-medium text-gray-700 mb-1">สิ้นสุด</h4>
-                  <p className="text-gray-800">{formatDateTime(task.endDateTime)}</p>
-                </div>
-              )}
-              
-              {task.location && (
-                <div>
-                  <h4 className="text-sm font-medium text-gray-700 mb-1">สถานที่</h4>
-                  <p className="text-gray-800">{task.location}</p>
-                </div>
-              )}
-            </div>
-            
-            {task.notes && (
-              <div className="mb-4">
-                <h4 className="text-sm font-medium text-gray-700 mb-1">หมายเหตุ</h4>
-                <p className="text-gray-800 whitespace-pre-line">{task.notes}</p>
-              </div>
-            )}
-            
-            {task.deliveryDetails && (
-              <div className="mb-4">
-                <h4 className="text-sm font-medium text-gray-700 mb-1">
-                  รายละเอียดการส่งมอบงาน
-                </h4>
-                <p className="text-gray-800 whitespace-pre-line">{task.deliveryDetails}</p>
-              </div>
-            )}
-          </div>
+        <Divider />
+        
+        {/* ส่วนความคืบหน้า */}
+        <div>
+          <Title level={5}>ความคืบหน้า</Title>
           
-          <div>
-            <h4 className="text-sm font-medium text-gray-700 mb-2">ความคืบหน้า</h4>
+          <Progress
+            percent={progressPercent}
+            status={progressPercent === 100 ? "success" : "active"}
+            strokeColor={{
+              from: '#108ee9',
+              to: '#87d068',
+            }}
+            style={{ marginBottom: 16 }}
+          />
+          
+          <Form 
+            form={form}
+            onFinish={handleAddProgress}
+            layout="vertical"
+            requiredMark={false}
+          >
+            <Form.Item
+              name="description"
+              label="เพิ่มความคืบหน้า"
+              rules={[{ required: true, message: 'กรุณากรอกรายละเอียดความคืบหน้า' }]}
+            >
+              <TextArea
+                rows={2}
+                placeholder="รายละเอียดความคืบหน้า..."
+                value={progressDescription}
+                onChange={(e) => setProgressDescription(e.target.value)}
+              />
+            </Form.Item>
             
-            <div className="w-full bg-gray-200 rounded-full h-4 mb-4">
-              <div
-                className="bg-blue-600 h-4 rounded-full text-xs text-white flex items-center justify-center"
-                style={{ 
-                  width: `${progressPercent}%`,
-                  minWidth: '2rem' 
-                }}
+            <Form.Item label={`เปอร์เซ็นต์ความคืบหน้า: ${progressPercent}%`}>
+              <Slider
+                min={0}
+                max={100}
+                value={progressPercent}
+                onChange={setProgressPercent}
+              />
+            </Form.Item>
+            
+            <Form.Item style={{ textAlign: 'right', marginBottom: 0 }}>
+              <Button
+                type="primary"
+                htmlType="submit"
+                loading={isSubmittingProgress}
               >
-                {progressPercent}%
-              </div>
-            </div>
-            
-            <form onSubmit={handleAddProgress} className="mb-6">
-              <div className="space-y-3">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    เพิ่มความคืบหน้า
-                  </label>
-                  <textarea
-                    value={progressDescription}
-                    onChange={(e) => setProgressDescription(e.target.value)}
-                    placeholder="รายละเอียดความคืบหน้า..."
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    rows={2}
-                  ></textarea>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    เปอร์เซ็นต์ความคืบหน้า: {progressPercent}%
-                  </label>
-                  <input
-                    type="range"
-                    min="0"
-                    max="100"
-                    value={progressPercent}
-                    onChange={(e) => setProgressPercent(parseInt(e.target.value))}
-                    className="w-full"
-                  />
-                </div>
-                
-                <div className="flex justify-end">
-                  <button
-                    type="submit"
-                    disabled={isSubmittingProgress}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:bg-blue-400"
-                  >
-                    {isSubmittingProgress ? "กำลังบันทึก..." : "บันทึกความคืบหน้า"}
-                  </button>
-                </div>
-              </div>
-            </form>
-            
-            <h4 className="text-sm font-medium text-gray-700 mb-2">ประวัติความคืบหน้า</h4>
-            
-            {sortedProgress.length > 0 ? (
-              <div className="space-y-3">
-                {sortedProgress.map((progress) => (
-                  <div
-                    key={progress.id}
-                    className="p-3 bg-gray-50 rounded-md border border-gray-200"
-                  >
-                    <div className="flex justify-between items-start mb-2">
-                      <span className="font-medium">{progress.percentComplete}%</span>
-                      <span className="text-xs text-gray-600">
+                บันทึกความคืบหน้า
+              </Button>
+            </Form.Item>
+          </Form>
+          
+          <Divider orientation="left" plain>
+            ประวัติความคืบหน้า
+          </Divider>
+          
+          {sortedProgress.length > 0 ? (
+            <Timeline
+              mode="left"
+              items={sortedProgress.map((progress) => ({
+                children: (
+                  <Card size="small" style={{ marginBottom: 8 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                      <Tag color="blue">{progress.percentComplete}%</Tag>
+                      <Text type="secondary" style={{ fontSize: 12 }}>
                         {format(new Date(progress.createdAt), "d MMM yyyy, HH:mm น.", {
                           locale: th,
                         })}
-                      </span>
+                      </Text>
                     </div>
-                    <p className="text-gray-800 text-sm">{progress.description}</p>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-gray-500 text-sm">ยังไม่มีการบันทึกความคืบหน้า</p>
-            )}
-          </div>
+                    <Paragraph style={{ margin: 0 }}>{progress.description}</Paragraph>
+                  </Card>
+                ),
+              }))}
+            />
+          ) : (
+            <Text type="secondary">ยังไม่มีการบันทึกความคืบหน้า</Text>
+          )}
         </div>
-        
-        <div className="p-4 border-t flex justify-end space-x-2">
-          <button
-            onClick={onEdit}
-            className="px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 transition-colors"
-          >
-            แก้ไขข้อมูลงาน
-          </button>
-        </div>
-      </div>
-    </div>
+      </Space>
+    </Modal>
   );
 }

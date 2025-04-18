@@ -34,7 +34,7 @@ export default function DashboardLayout({
         alignItems: 'center', 
         height: '100vh' 
       }}>
-        <Spin size="large" tip="กำลังโหลด..." />
+        <Spin size="large"  />
       </div>
     );
   }

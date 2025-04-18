@@ -2,16 +2,25 @@
 "use client";
 
 import { useState } from "react";
+import { Layout, Menu, Typography, Card, Tabs } from "antd";
+import { 
+  CalendarOutlined, 
+  CheckSquareOutlined, 
+  LineChartOutlined, 
+  NodeIndexOutlined 
+} from "@ant-design/icons";
 import PublicYearPlan from "@/components/public-view/PublicYearPlan";
 import PublicTodoList from "@/components/public-view/PublicTodoList";
 import PublicTaskTracking from "@/components/public-view/PublicTaskTracking";
 import PublicFlowchart from "@/components/public-view/PublicFlowchart";
 
+const { Title } = Typography;
+
 interface PublicViewComponentProps {
   userData: {
     user: {
       id: string;
-      name: string | null; // เพิ่ม null เป็นไทป์ที่ยอมรับได้
+      name: string | null;
     };
     yearPlans: any[];
     todoLists: any[];
@@ -21,47 +30,52 @@ interface PublicViewComponentProps {
 }
 
 export default function PublicViewComponent({ userData }: PublicViewComponentProps) {
-  const [activeTab, setActiveTab] = useState<string>("year-plan");
+  const [activeTab, setActiveTab] = useState("year-plan");
   
-  const tabs = [
-    { id: "year-plan", label: "แผนงานประจำปี" },
-    { id: "todo-list", label: "รายการสิ่งที่ต้องทำ" },
-    { id: "task-tracking", label: "ติดตามงาน" },
-    { id: "flowchart", label: "แผนผังกระบวนการ" },
+  const tabItems = [
+    { 
+      key: "year-plan", 
+      label: "แผนงานประจำปี", 
+      icon: <CalendarOutlined />,
+      children: <PublicYearPlan yearPlans={userData.yearPlans} />
+    },
+    { 
+      key: "todo-list", 
+      label: "รายการสิ่งที่ต้องทำ", 
+      icon: <CheckSquareOutlined />,
+      children: <PublicTodoList todoLists={userData.todoLists} />
+    },
+    { 
+      key: "task-tracking", 
+      label: "ติดตามงาน", 
+      icon: <LineChartOutlined />,
+      children: <PublicTaskTracking tasks={userData.tasks} />
+    },
+    { 
+      key: "flowchart", 
+      label: "แผนผังกระบวนการ", 
+      icon: <NodeIndexOutlined />,
+      children: <PublicFlowchart flowcharts={userData.flowcharts} />
+    }
   ];
   
   return (
-    <div className="bg-white rounded-lg shadow-md overflow-hidden">
-      <div className="p-6 border-b">
-        <h1 className="text-2xl font-bold">
+    <Card 
+      title={
+        <Title level={4} style={{ margin: 0 }}>
           ข้อมูลการทำงานของ {userData.user.name}
-        </h1>
-      </div>
-      
-      <div className="border-b">
-        <div className="flex overflow-x-auto">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`px-6 py-3 font-medium text-sm focus:outline-none whitespace-nowrap ${
-                activeTab === tab.id
-                  ? "border-b-2 border-blue-500 text-blue-600"
-                  : "text-gray-500 hover:text-gray-700 hover:border-gray-300"
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-      </div>
-      
-      <div className="p-6">
-        {activeTab === "year-plan" && <PublicYearPlan yearPlans={userData.yearPlans} />}
-        {activeTab === "todo-list" && <PublicTodoList todoLists={userData.todoLists} />}
-        {activeTab === "task-tracking" && <PublicTaskTracking tasks={userData.tasks} />}
-        {activeTab === "flowchart" && <PublicFlowchart flowcharts={userData.flowcharts} />}
-      </div>
-    </div>
+        </Title>
+      }
+      style={{ width: '100%' }}
+    >
+      <Tabs 
+        defaultActiveKey="year-plan"
+        items={tabItems}
+        onChange={(key) => setActiveTab(key)}
+        tabPosition="top"
+        size="large"
+        animated
+      />
+    </Card>
   );
 }

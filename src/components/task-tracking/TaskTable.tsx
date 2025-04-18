@@ -4,6 +4,11 @@
 import { Task, TaskStatus, YearPlanActivity } from "@prisma/client";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
+import { Table, Tag, Button, Dropdown, Progress, Space, Typography, Tooltip } from "antd";
+import { MoreOutlined, EditOutlined, DeleteOutlined, EyeOutlined } from "@ant-design/icons";
+import type { ColumnsType } from "antd/es/table";
+
+const { Text, Paragraph } = Typography;
 
 interface TaskWithRelations extends Task {
   progress: any[];
@@ -25,6 +30,7 @@ export default function TaskTable({
   onDelete,
   onViewDetail,
 }: TaskTableProps) {
+  // ข้อมูลสำหรับแสดงสถานะ
   const taskStatusLabels: Record<TaskStatus, string> = {
     PENDING: "รอดำเนินการ",
     IN_PROGRESS: "กำลังดำเนินการ",
@@ -33,12 +39,13 @@ export default function TaskTable({
     CANCELLED: "ยกเลิก",
   };
   
+  // สีของ Tag สำหรับแต่ละสถานะ
   const taskStatusColors: Record<TaskStatus, string> = {
-    PENDING: "bg-gray-100 text-gray-800",
-    IN_PROGRESS: "bg-blue-100 text-blue-800",
-    COMPLETED: "bg-green-100 text-green-800",
-    DELAYED: "bg-yellow-100 text-yellow-800",
-    CANCELLED: "bg-red-100 text-red-800",
+    PENDING: "default",
+    IN_PROGRESS: "processing",
+    COMPLETED: "success",
+    DELAYED: "warning",
+    CANCELLED: "error",
   };
   
   // ฟังก์ชันสำหรับฟอร์แมตวันที่และเวลา
@@ -59,115 +66,140 @@ export default function TaskTable({
     
     return sortedProgress[0].percentComplete;
   };
-  
+
+  // กำหนด columns สำหรับ Ant Design Table
+  const columns: ColumnsType<TaskWithRelations> = [
+    {
+      title: "งาน",
+      dataIndex: "title",
+      key: "title",
+      render: (text, task) => (
+        <Space direction="vertical" size={0}>
+          <Text 
+            strong 
+            style={{ color: "#1890ff", cursor: "pointer" }} 
+            onClick={() => onViewDetail(task)}
+          >
+            {text}
+          </Text>
+          {task.description && (
+            <Paragraph ellipsis={{ rows: 2 }} type="secondary" style={{ marginBottom: 0 }}>
+              {task.description}
+            </Paragraph>
+          )}
+        </Space>
+      ),
+    },
+    {
+      title: "กิจกรรมจาก Year Plan",
+      dataIndex: "activity",
+      key: "activity",
+      render: (activity) => (
+        activity ? (
+          <Text type="secondary" strong style={{ color: "#722ed1" }}>
+            {activity.title}
+          </Text>
+        ) : (
+          <Text type="secondary">-</Text>
+        )
+      ),
+    },
+    {
+      title: "วันและเวลา",
+      key: "dateTime",
+      render: (_, task) => (
+        <Space direction="vertical" size={0}>
+          <Text>{formatDateTime(task.startDateTime)}</Text>
+          {task.endDateTime && (
+            <Text type="secondary">
+              ถึง {formatDateTime(task.endDateTime)}
+            </Text>
+          )}
+        </Space>
+      ),
+    },
+    {
+      title: "สถานที่",
+      dataIndex: "location",
+      key: "location",
+      render: (location) => location || <Text type="secondary">-</Text>,
+    },
+    {
+      title: "ความคืบหน้า",
+      key: "progress",
+      render: (_, task) => {
+        const progressValue = getLatestProgress(task.progress);
+        return <Progress percent={progressValue} size="small" />;
+      },
+    },
+    {
+      title: "สถานะ",
+      key: "status",
+      render: (_, task) => (
+        <Dropdown
+          menu={{
+            items: [
+              { key: "PENDING", label: "รอดำเนินการ" },
+              { key: "IN_PROGRESS", label: "กำลังดำเนินการ" },
+              { key: "COMPLETED", label: "เสร็จสิ้น" },
+              { key: "DELAYED", label: "ล่าช้า" },
+              { key: "CANCELLED", label: "ยกเลิก" },
+            ],
+            onClick: ({ key }) => onStatusChange(task.id, key as TaskStatus),
+          }}
+          trigger={["click"]}
+        >
+          <Tag color={taskStatusColors[task.status]} style={{ cursor: "pointer" }}>
+            {taskStatusLabels[task.status]}
+          </Tag>
+        </Dropdown>
+      ),
+    },
+    {
+      title: "การดำเนินการ",
+      key: "action",
+      align: "center",
+      render: (_, task) => (
+        <Space size="small">
+          <Tooltip title="ดูรายละเอียด">
+            <Button 
+              type="text" 
+              size="small" 
+              icon={<EyeOutlined />} 
+              onClick={() => onViewDetail(task)} 
+            />
+          </Tooltip>
+          <Tooltip title="แก้ไข">
+            <Button 
+              type="text" 
+              size="small" 
+              icon={<EditOutlined />} 
+              onClick={() => onEdit(task)} 
+            />
+          </Tooltip>
+          <Tooltip title="ลบ">
+            <Button 
+              type="text" 
+              size="small" 
+              danger 
+              icon={<DeleteOutlined />} 
+              onClick={() => onDelete(task.id)} 
+            />
+          </Tooltip>
+        </Space>
+      ),
+    },
+  ];
+
   return (
-    <div className="bg-white rounded-lg shadow-md overflow-hidden">
-      {tasks.length > 0 ? (
-        <div className="overflow-x-auto">
-          <table className="min-w-full">
-            <thead>
-              <tr className="bg-gray-50 text-gray-700">
-                <th className="py-3 px-4 text-left font-semibold">งาน</th>
-                <th className="py-3 px-4 text-left font-semibold">กิจกรรมจาก Year Plan</th>
-                <th className="py-3 px-4 text-left font-semibold">วันและเวลา</th>
-                <th className="py-3 px-4 text-left font-semibold">สถานที่</th>
-                <th className="py-3 px-4 text-left font-semibold">ความคืบหน้า</th>
-                <th className="py-3 px-4 text-left font-semibold">สถานะ</th>
-                <th className="py-3 px-4 text-center font-semibold">การดำเนินการ</th>
-              </tr>
-            </thead>
-            <tbody>
-              {tasks.map((task) => (
-                <tr key={task.id} className="border-t hover:bg-gray-50">
-                  <td className="py-3 px-4">
-                    <div className="flex flex-col">
-                      <button
-                        onClick={() => onViewDetail(task)}
-                        className="font-medium text-blue-600 hover:text-blue-800 text-left"
-                      >
-                        {task.title}
-                      </button>
-                      {task.description && (
-                        <p className="text-sm text-gray-600 mt-1 line-clamp-2">
-                          {task.description}
-                        </p>
-                      )}
-                    </div>
-                  </td>
-                  <td className="py-3 px-4">
-                    {task.activity ? (
-                      <span className="font-medium text-indigo-600">
-                        {task.activity.title}
-                      </span>
-                    ) : (
-                      <span className="text-gray-500">-</span>
-                    )}
-                  </td>
-                  <td className="py-3 px-4">
-                    <div className="flex flex-col">
-                      <span>{formatDateTime(task.startDateTime)}</span>
-                      {task.endDateTime && (
-                        <span className="text-sm text-gray-600 mt-1">
-                          ถึง {formatDateTime(task.endDateTime)}
-                        </span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="py-3 px-4">
-                    {task.location || <span className="text-gray-500">-</span>}
-                  </td>
-                  <td className="py-3 px-4">
-                    <div className="w-full bg-gray-200 rounded-full h-2.5">
-                      <div
-                        className="bg-blue-600 h-2.5 rounded-full"
-                        style={{ width: `${getLatestProgress(task.progress)}%` }}
-                      ></div>
-                    </div>
-                    <div className="text-xs mt-1 text-gray-600">
-                      {getLatestProgress(task.progress)}%
-                    </div>
-                  </td>
-                  <td className="py-3 px-4">
-                    <select
-                      value={task.status}
-                      onChange={(e) => onStatusChange(task.id, e.target.value as TaskStatus)}
-                      className={`text-xs font-medium px-2 py-1 rounded-md border-none ${
-                        taskStatusColors[task.status]
-                      }`}
-                    >
-                      <option value="PENDING">รอดำเนินการ</option>
-                      <option value="IN_PROGRESS">กำลังดำเนินการ</option>
-                      <option value="COMPLETED">เสร็จสิ้น</option>
-                      <option value="DELAYED">ล่าช้า</option>
-                      <option value="CANCELLED">ยกเลิก</option>
-                    </select>
-                  </td>
-                  <td className="py-3 px-4 text-center">
-                    <div className="flex gap-2 justify-center">
-                      <button
-                        onClick={() => onEdit(task)}
-                        className="text-blue-600 hover:text-blue-800"
-                      >
-                        แก้ไข
-                      </button>
-                      <button
-                        onClick={() => onDelete(task.id)}
-                        className="text-red-600 hover:text-red-800"
-                      >
-                        ลบ
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ) : (
-        <div className="p-8 text-center text-gray-500">
-          <p>ไม่พบรายการงาน</p>
-        </div>
-      )}
-    </div>
+    <Table
+      columns={columns}
+      dataSource={tasks.map(task => ({ ...task, key: task.id }))}
+      pagination={{ pageSize: 10 }}
+      rowClassName={() => "hover:bg-gray-50"}
+      locale={{ emptyText: "ไม่พบรายการงาน" }}
+      bordered
+      size="middle"
+    />
   );
 }
