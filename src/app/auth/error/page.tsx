@@ -1,18 +1,26 @@
 "use client";
 
+import { Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Result, Button, Card } from "antd";
 import { CloseCircleOutlined } from "@ant-design/icons";
 
 export default function AuthErrorPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">กำลังโหลด...</div>}>
+      <AuthErrorContent />
+    </Suspense>
+  );
+}
+
+function AuthErrorContent() {
   const searchParams = useSearchParams();
   const error = searchParams.get("error");
 
   let errorMessage = "เกิดข้อผิดพลาดในการเข้าสู่ระบบ";
   let errorDescription = "โปรดลองอีกครั้ง หรือติดต่อผู้ดูแลระบบหากปัญหายังคงอยู่";
 
-  // แสดงข้อความตามประเภทของข้อผิดพลาด
   if (error === "CredentialsSignin") {
     errorMessage = "อีเมลหรือรหัสผ่านไม่ถูกต้อง";
     errorDescription = "โปรดตรวจสอบข้อมูลการเข้าสู่ระบบของคุณ และลองอีกครั้ง";

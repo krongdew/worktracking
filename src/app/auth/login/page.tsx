@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { signIn } from "next-auth/react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button, Form, Input, Card, Typography, Alert } from "antd";
 import { UserOutlined, LockOutlined } from "@ant-design/icons";
@@ -16,13 +16,14 @@ type FormValues = {
 
 export default function LoginPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
-  const registered = searchParams.get("registered") === "true";
-  
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   
+  // ใช้ URLSearchParams แทน useSearchParams
+  const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+  const callbackUrl = searchParams?.get("callbackUrl") || "/dashboard";
+  const registered = searchParams?.get("registered") === "true";
+
   const onFinish = async (values: FormValues) => {
     setIsLoading(true);
     setError("");
