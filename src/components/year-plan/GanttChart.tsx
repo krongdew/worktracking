@@ -1,9 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { ActivityType } from "@prisma/client";
-import { Card, Typography, Tag, Row, Col, Table, Tooltip, Space, Badge } from "antd";
-import type { TableProps } from "antd";
+import { Card, Typography, Table, Space, Badge } from "antd";
+
 
 const { Title, Text } = Typography;
 

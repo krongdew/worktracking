@@ -3,13 +3,18 @@
 
 import { useState } from "react";
 import { Modal, Form, Input } from "antd";
+import { FlowchartFormData } from "@/types/flowchart";
+// สร้าง interface สำหรับข้อมูลแผนผัง
+// FlowchartForm.tsx
+
 
 interface FlowchartFormProps {
   onClose: () => void;
-  onSubmit: (data: any) => Promise<void>;
-  initialData?: any;
+  onSubmit: (data: FlowchartFormData) => Promise<void>;
+  initialData?: FlowchartFormData;
   isEditing?: boolean;
 }
+
 
 export default function FlowchartForm({ 
   onClose, 

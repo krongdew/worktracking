@@ -3,16 +3,16 @@
 import React from "react";
 import Link from "next/link";
 import { TodoStatus, TaskStatus } from "@prisma/client";
-import { Card, Row, Col, Typography, Tag, Space, List, Divider } from "antd";
+import { Card, Row, Col, Typography, Tag, Space, List } from "antd";
 import { 
   CalendarOutlined, 
   CheckCircleOutlined, 
   ClockCircleOutlined, 
-  FileOutlined,
-  RightOutlined
+  FileOutlined
+  // ลบ RightOutlined ที่ไม่ได้ใช้
 } from "@ant-design/icons";
 
-const { Title, Text, Paragraph } = Typography;
+const { Title, Text } = Typography; // ลบ Paragraph ที่ไม่ได้ใช้
 
 interface DashboardData {
   yearPlans: number;
@@ -44,10 +44,11 @@ interface DashboardData {
 
 interface DashboardSummaryProps {
   data: DashboardData;
-  userId: string;
+  // ลบ userId จาก props หรือเปลี่ยนเป็น _userId ถ้าต้องการเก็บไว้เพื่ออนาคต
+  // userId: string;
 }
 
-export default function DashboardSummary({ data, userId }: DashboardSummaryProps) {
+export default function DashboardSummary({ data }: DashboardSummaryProps) {
   const todoStatusLabels: Record<TodoStatus, string> = {
     PENDING: "รอดำเนินการ",
     IN_PROGRESS: "กำลังดำเนินการ",

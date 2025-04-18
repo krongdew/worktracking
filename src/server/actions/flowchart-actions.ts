@@ -19,13 +19,16 @@ export async function getUserFlowcharts(userId: string) {
   }
 }
 
-// สร้าง Flowchart ใหม่
-export async function createFlowchart(data: {
+// กำหนด interface สำหรับการสร้าง Flowchart
+interface CreateFlowchartParams {
   title: string;
-  description?: string;
+  description?: string | null;
   content: string;
   userId: string;
-}) {
+}
+
+// สร้าง Flowchart ใหม่
+export async function createFlowchart(data: CreateFlowchartParams) {
   try {
     const flowchart = await db.flowchart.create({
       data: {
@@ -44,15 +47,23 @@ export async function createFlowchart(data: {
   }
 }
 
-// อัปเดต Flowchart
-export async function updateFlowchart(data: {
+// กำหนด interface สำหรับการอัปเดต Flowchart
+interface UpdateFlowchartParams {
   id: string;
   title?: string;
-  description?: string;
+  description?: string | null;
   content?: string;
-}) {
+}
+
+// อัปเดต Flowchart
+export async function updateFlowchart(data: UpdateFlowchartParams) {
   try {
-    const updateData: any = {};
+    // สร้าง object สำหรับการอัปเดตที่มี type ถูกต้อง แทนการใช้ any
+    const updateData: Partial<{
+      title: string;
+      description: string | null;
+      content: string;
+    }> = {};
     
     if (data.title !== undefined) updateData.title = data.title;
     if (data.description !== undefined) updateData.description = data.description;

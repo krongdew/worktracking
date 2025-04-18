@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Layout, Menu, Typography, Avatar, Space, Divider } from "antd";
+import { Layout, Menu, Typography, Avatar, Divider } from "antd";
 import {
   DashboardOutlined,
   CalendarOutlined,

@@ -5,7 +5,7 @@ import { Task, TaskStatus, YearPlanActivity } from "@prisma/client";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
 import { Table, Tag, Button, Dropdown, Progress, Space, Typography, Tooltip } from "antd";
-import { MoreOutlined, EditOutlined, DeleteOutlined, EyeOutlined } from "@ant-design/icons";
+import {  EditOutlined, DeleteOutlined, EyeOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 
 const { Text, Paragraph } = Typography;

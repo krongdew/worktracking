@@ -9,7 +9,7 @@ import {
   Space, 
   Row, 
   Col, 
-  message 
+  App    // เพิ่ม App component
 } from "antd";
 import { 
   PlusOutlined, 
@@ -25,10 +25,7 @@ import ReactFlow, {
   useEdgesState,
   addEdge,
   Node,
-  Edge,
-  Connection,
-  NodeChange,
-  EdgeChange
+  Connection
 } from "reactflow";
 import "reactflow/dist/style.css";
 import FlowStartNode from "@/components/flowchart/nodes/FlowStartNode";
@@ -51,12 +48,23 @@ interface FlowchartEditorProps {
   onSave: (content: string) => void;
 }
 
-export default function FlowchartEditor({
+// สร้าง Component ที่ครอบด้วย App
+export default function FlowchartEditorWrapper(props: FlowchartEditorProps) {
+  return (
+    <App>
+      <FlowchartEditor {...props} />
+    </App>
+  );
+}
+
+function FlowchartEditor({
   initialContent,
   onSave,
 }: FlowchartEditorProps) {
-  // แปลงข้อมูล JSON เป็น nodes และ edges
-  const parseInitialContent = () => {
+  const { message } = App.useApp(); // ใช้ useApp hook เพื่อเข้าถึง message API
+  
+  // แปลงข้อมูล JSON เป็น nodes และ edges ด้วย useCallback
+  const parseInitialContent = useCallback(() => {
     try {
       if (initialContent) {
         const content = JSON.parse(initialContent);
@@ -81,7 +89,7 @@ export default function FlowchartEditor({
         { id: 'e2-3', source: '2', target: '3', animated: false }
       ],
     };
-  };
+  }, [initialContent]);
   
   const { nodes: initialNodes, edges: initialEdges } = parseInitialContent();
   
@@ -182,7 +190,7 @@ export default function FlowchartEditor({
       edges,
     };
     onSave(JSON.stringify(flowchartData));
-    message.success('บันทึกแผนผังสำเร็จ');
+    message.success('บันทึกแผนผังสำเร็จ'); // ตอนนี้ใช้ message จาก useApp
   };
   
   // อัปเดต nodes และ edges เมื่อ initialContent เปลี่ยน
@@ -190,7 +198,7 @@ export default function FlowchartEditor({
     const { nodes: newNodes, edges: newEdges } = parseInitialContent();
     setNodes(newNodes);
     setEdges(newEdges);
-  }, [initialContent, setNodes, setEdges]);
+  }, [initialContent, setNodes, setEdges, parseInitialContent]);
   
   return (
     <div className="flex flex-col h-[600px]">

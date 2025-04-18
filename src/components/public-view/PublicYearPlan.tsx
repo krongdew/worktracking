@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Select, Typography, Card, Tag } from 'antd';
+import { Select, Typography, Card } from 'antd';
 
 // Local type definitions
 type ActivityType = 'ONGOING' | 'PARTIAL' | 'EVENT' | 'TRAINING' | 'DESIGN' | 'OTHER';

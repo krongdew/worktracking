@@ -4,6 +4,16 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 
+// สร้าง interface สำหรับ Activity เพื่อแทนที่การใช้ any
+interface YearPlanActivity {
+  title: string;
+  description?: string;
+  startDate: string | Date;
+  endDate: string | Date;
+  category?: string;
+  type?: string;
+}
+
 // สร้างแผนงานประจำปีใหม่
 export async function POST(req: NextRequest) {
   try {
@@ -38,7 +48,7 @@ export async function POST(req: NextRequest) {
     // เพิ่มกิจกรรมถ้ามี
     if (data.activities && data.activities.length > 0) {
       await db.yearPlanActivity.createMany({
-        data: data.activities.map((activity: any) => ({
+        data: data.activities.map((activity: YearPlanActivity) => ({
           title: activity.title,
           description: activity.description,
           startDate: new Date(activity.startDate),
@@ -61,7 +71,7 @@ export async function POST(req: NextRequest) {
 }
 
 // ดึงรายการแผนงานประจำปี
-export async function GET(req: NextRequest) {
+export async function GET(_req: NextRequest) { // เปลี่ยนเป็น _req เพื่อระบุว่าไม่ได้ใช้
   try {
     const session = await getServerSession(authOptions);
     
@@ -151,7 +161,7 @@ export async function PUT(req: NextRequest) {
 
       // เพิ่มกิจกรรมใหม่
       await db.yearPlanActivity.createMany({
-        data: data.activities.map((activity: any) => ({
+        data: data.activities.map((activity: YearPlanActivity) => ({
           title: activity.title,
           description: activity.description,
           startDate: new Date(activity.startDate),

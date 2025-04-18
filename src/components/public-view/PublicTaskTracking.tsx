@@ -128,7 +128,7 @@ export default function PublicTaskTracking({ tasks }: PublicTaskTrackingProps) {
       dataIndex: 'title',
       key: 'title',
       width: 200,
-      render: (_: any, task: Task) => (
+      render: (_: string, task: Task) => (
         <Space direction="vertical" size={0}>
           <Text strong>{task.title}</Text>
           {task.description && (
@@ -156,7 +156,7 @@ export default function PublicTaskTracking({ tasks }: PublicTaskTrackingProps) {
       dataIndex: 'startDateTime',
       key: 'startDateTime',
       width: 200,
-      render: (_: any, task: Task) => (
+      render: (_: string, task: Task) => (
         <Space direction="vertical" size={0}>
           <Text>{formatDateTime(task.startDateTime)}</Text>
           {task.endDateTime && (

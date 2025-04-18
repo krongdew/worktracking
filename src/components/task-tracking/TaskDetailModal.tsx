@@ -4,7 +4,7 @@
 import { Task, TaskStatus, YearPlanActivity } from "@prisma/client";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { updateTaskProgress } from "@/server/actions/task-tracking-actions";
 import { useRouter } from "next/navigation";
 import { 

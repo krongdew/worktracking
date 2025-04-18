@@ -5,7 +5,7 @@ import { Flowchart } from "@prisma/client";
 import { 
   Select, 
   Button, 
-  Modal, 
+  // ลบ Modal ที่ไม่ได้ใช้งาน
   message, 
   Space, 
   Typography, 
@@ -23,9 +23,11 @@ import FlowchartEditor from "@/components/flowchart/FlowchartEditor";
 import FlowchartForm from "@/components/flowchart/FlowchartForm";
 import { useRouter } from "next/navigation";
 import { createFlowchart, updateFlowchart, deleteFlowchart } from "@/server/actions/flowchart-actions";
+import { FlowchartFormData } from "@/types/flowchart";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
+
 
 interface FlowchartManagerProps {
   initialFlowcharts: Flowchart[];
@@ -62,7 +64,7 @@ export default function FlowchartManager({
     }
   };
   
-  const handleCreateFlowchart = async (data: any) => {
+  const handleCreateFlowchart = async (data: FlowchartFormData) => {
     try {
       // ใช้ค่าเริ่มต้นสำหรับ flowchart ใหม่
       const initialFlowchart = {
@@ -79,7 +81,7 @@ export default function FlowchartManager({
       
       const newFlowchart = await createFlowchart({
         title: data.title,
-        description: data.description,
+        description: data.description ?? undefined, // แปลง null เป็น undefined
         content: JSON.stringify(initialFlowchart),
         userId,
       });
@@ -96,14 +98,14 @@ export default function FlowchartManager({
     }
   };
   
-  const handleUpdateFlowchartInfo = async (data: any) => {
+  const handleUpdateFlowchartInfo = async (data: FlowchartFormData) => {
     if (!selectedFlowchart) return;
     
     try {
       const updatedFlowchart = await updateFlowchart({
         id: selectedFlowchart.id,
         title: data.title,
-        description: data.description,
+        description: data.description ?? undefined, // แปลง null เป็น undefined
         content: selectedFlowchart.content,
       });
       
@@ -262,7 +264,12 @@ export default function FlowchartManager({
             setIsEditing(false);
           }}
           onSubmit={isEditing ? handleUpdateFlowchartInfo : handleCreateFlowchart}
-          initialData={isEditing ? selectedFlowchart : null}
+          initialData={isEditing && selectedFlowchart ? {
+            id: selectedFlowchart.id,
+            title: selectedFlowchart.title,
+            description: selectedFlowchart.description,
+            content: selectedFlowchart.content
+          } : undefined}
           isEditing={isEditing}
         />
       )}
