@@ -3,11 +3,9 @@
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import Sidebar from "@/components/layouts/Sidebar";
-import Header from "@/components/layouts/Header";
-import { Layout, Spin } from "antd";
-
-const { Content } = Layout;
+import { Spin } from "antd";
+import { SidebarProvider } from "@/contexts/SidebarContext";
+import ResponsiveLayout from "@/components/layouts/ResponsiveLayout";
 
 export default function DashboardLayout({
   children,
@@ -34,21 +32,16 @@ export default function DashboardLayout({
         alignItems: 'center', 
         height: '100vh' 
       }}>
-        <Spin size="large"  />
+        <Spin size="large" />
       </div>
     );
   }
   
   return (
-    <Layout hasSider>
-      <Sidebar user={session?.user || {}} />
-      
-      <Layout style={{ marginLeft: 256, minHeight: "100vh" }}>
-        <Header user={session?.user || {}} />
-        <Content style={{ margin: '24px 16px', padding: 24, background: '#fff', borderRadius: 4 }}>
-          {children}
-        </Content>
-      </Layout>
-    </Layout>
+    <SidebarProvider>
+      <ResponsiveLayout user={session?.user || {}}>
+        {children}
+      </ResponsiveLayout>
+    </SidebarProvider>
   );
 }

@@ -3,6 +3,7 @@
 import "./globals.css";
 import { Inter, Sarabun } from "next/font/google";
 import { AuthProvider } from "@/components/auth/AuthProvider";
+import { SidebarProvider } from "@/contexts/SidebarContext";
 import { ConfigProvider, App } from "antd";
 import thTH from "antd/lib/locale/th_TH";
 
@@ -45,7 +46,9 @@ export default function RootLayout({
               },
             }}
           >
-            <App>{children}</App>
+            <SidebarProvider>
+              <App>{children}</App>
+            </SidebarProvider>
           </ConfigProvider>
         </AuthProvider>
       </body>

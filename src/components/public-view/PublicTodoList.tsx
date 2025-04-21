@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Select, Table, Tag, Typography, Card, Space } from 'antd';
+import { Select, Table, Tag, Typography, Card, Space, Row, Col, Tooltip } from 'antd';
+import { FilterOutlined } from '@ant-design/icons';
 import { ColumnsType } from 'antd/es/table';
 
 // Local type definitions
@@ -34,6 +35,21 @@ export default function PublicTodoList({ todoLists }: PublicTodoListProps) {
     type: "ALL",
     status: "ALL",
   });
+  const [isMobile, setIsMobile] = useState(false);
+  
+  // Check screen size on component mount and resize
+  useEffect(() => {
+    const checkScreenSize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+    
+    return () => {
+      window.removeEventListener('resize', checkScreenSize);
+    };
+  }, []);
   
   const todoTypeLabels: Record<TodoType, string> = {
     DAILY: "รายวัน",
@@ -117,52 +133,66 @@ export default function PublicTodoList({ todoLists }: PublicTodoListProps) {
     return diffDays <= 2 ? 'warning' : undefined;
   };
   
-  const columns: ColumnsType<TodoList> = [
+  // Function to truncate text with ellipsis and tooltip
+  const truncateText = (text: string, maxLength: number = 50) => {
+    if (!text || text.length <= maxLength) return text;
+    
+    const truncated = text.substring(0, maxLength) + '...';
+    return (
+      <Tooltip title={text}>
+        <span>{truncated}</span>
+      </Tooltip>
+    );
+  };
+  
+  // Desktop columns with limited width
+  const desktopColumns: ColumnsType<TodoList> = [
     {
       title: 'รายการ',
       dataIndex: 'title',
-      key: 'title',
-      width: 200,
-      render: (text, record) => (
-        <Space direction="vertical" size={0}>
-          <Typography.Text strong>{text}</Typography.Text>
+      key: 'title-desktop',
+      width: 180,
+      render: (text: string, record: TodoList) => (
+        <Space direction="vertical" size={0} style={{ width: '100%' }}>
+          <Tooltip title={text}>
+            <Typography.Text strong style={{ width: '100%' }} ellipsis>
+              {text}
+            </Typography.Text>
+          </Tooltip>
           {record.description && (
-            <Typography.Paragraph 
-              type="secondary" 
-              style={{ marginBottom: 0 }}
+            <Typography.Text 
+              type="secondary"
+              style={{ width: '100%' }}
               ellipsis={{ tooltip: record.description }}
             >
-              {record.description}
-            </Typography.Paragraph>
+              {truncateText(record.description, 40)}
+            </Typography.Text>
           )}
         </Space>
-      ),
-      responsive: ['md'],
+      )
     },
     {
       title: 'ประเภท',
       dataIndex: 'type',
-      key: 'type',
+      key: 'type-desktop',
       width: 100,
-      render: (type: TodoType) => todoTypeLabels[type],
-      responsive: ['md'],
+      render: (type: TodoType) => todoTypeLabels[type]
     },
     {
       title: 'ความสำคัญ',
       dataIndex: 'priority',
-      key: 'priority',
+      key: 'priority-desktop',
       width: 100,
       render: (priority: Priority) => (
         <Tag color={priorityColors[priority]}>
           {priorityLabels[priority]}
         </Tag>
-      ),
-      responsive: ['md'],
+      )
     },
     {
       title: 'วันที่ครบกำหนด',
       dataIndex: 'dueDate',
-      key: 'dueDate',
+      key: 'dueDate-desktop',
       width: 150,
       render: (dueDate: Date, record: TodoList) => {
         const dateStr = new Date(dueDate).toLocaleDateString('th-TH', {
@@ -176,68 +206,163 @@ export default function PublicTodoList({ todoLists }: PublicTodoListProps) {
             {dateStr}
           </Typography.Text>
         );
-      },
+      }
     },
     {
       title: 'สถานะ',
       dataIndex: 'status',
-      key: 'status',
-      width: 120,
+      key: 'status-desktop',
+      width: 130,
       render: (status: TodoStatus) => (
         <Tag color={todoStatusColors[status]}>
           {todoStatusLabels[status]}
         </Tag>
-      ),
-    },
+      )
+    }
   ];
+
+  // Mobile columns
+  const mobileColumns: ColumnsType<TodoList> = [
+    {
+      title: 'รายการ',
+      dataIndex: 'title',
+      key: 'title-mobile',
+      width: '60%',
+      render: (text: string, record: TodoList) => (
+        <Space direction="vertical" size={0} style={{ width: '100%' }}>
+          <Typography.Text strong ellipsis={{ tooltip: text }}>
+            {text}
+          </Typography.Text>
+          <Space size={4}>
+            <Tag color={priorityColors[record.priority]}>
+              {priorityLabels[record.priority]}
+            </Tag>
+            <Typography.Text type="secondary" style={{ fontSize: '12px' }}>
+              {todoTypeLabels[record.type]}
+            </Typography.Text>
+          </Space>
+          <Typography.Text 
+            type={getDueDateStatus(record.dueDate, record.status)}
+            style={{ fontSize: '12px' }}
+          >
+            {new Date(record.dueDate).toLocaleDateString('th-TH', {
+              day: 'numeric',
+              month: 'short',
+              year: 'numeric'
+            })}
+          </Typography.Text>
+        </Space>
+      )
+    },
+    {
+      title: 'สถานะ',
+      dataIndex: 'status',
+      key: 'status-mobile',
+      width: '40%',
+      render: (status: TodoStatus) => (
+        <Tag color={todoStatusColors[status]}>
+          {todoStatusLabels[status]}
+        </Tag>
+      )
+    }
+  ];
+
+  // Filter components
+  const FilterControls = () => {
+    if (isMobile) {
+      return (
+        <Space direction="vertical" size="small" style={{ width: '100%', marginBottom: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
+            <FilterOutlined style={{ marginRight: 8 }} />
+            <Typography.Text strong>กรองรายการ</Typography.Text>
+          </div>
+          
+          <Row gutter={[8, 16]} style={{ width: '100%' }}>
+            <Col span={24}>
+              <Select
+                style={{ width: '100%' }}
+                value={activeFilter.type}
+                onChange={(value: TodoType | "ALL") => setActiveFilter(prev => ({ ...prev, type: value }))}
+                placeholder="ประเภท"
+              >
+                <Select.Option value="ALL">ทั้งหมด</Select.Option>
+                <Select.Option value="DAILY">รายวัน</Select.Option>
+                <Select.Option value="WEEKLY">รายสัปดาห์</Select.Option>
+                <Select.Option value="MONTHLY">รายเดือน</Select.Option>
+              </Select>
+            </Col>
+            
+            <Col span={24}>
+              <Select
+                style={{ width: '100%' }}
+                value={activeFilter.status}
+                onChange={(value: TodoStatus | "ALL") => setActiveFilter(prev => ({ ...prev, status: value }))}
+                placeholder="สถานะ"
+              >
+                <Select.Option value="ALL">ทุกสถานะ</Select.Option>
+                <Select.Option value="PENDING">รอดำเนินการ</Select.Option>
+                <Select.Option value="IN_PROGRESS">กำลังดำเนินการ</Select.Option>
+                <Select.Option value="COMPLETED">เสร็จสิ้น</Select.Option>
+                <Select.Option value="CANCELLED">ยกเลิก</Select.Option>
+              </Select>
+            </Col>
+          </Row>
+        </Space>
+      );
+    }
+    
+    return (
+      <Row gutter={24} align="middle" style={{ marginBottom: 16 }}>
+        <Col>
+          <Space>
+            <FilterOutlined />
+            <Typography.Text strong>กรองรายการ:</Typography.Text>
+          </Space>
+        </Col>
+        <Col>
+          <Space size="middle">
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <Typography.Text style={{ marginRight: 8 }}>ประเภท:</Typography.Text>
+              <Select
+                style={{ width: 140 }}
+                value={activeFilter.type}
+                onChange={(value: TodoType | "ALL") => setActiveFilter(prev => ({ ...prev, type: value }))}
+              >
+                <Select.Option value="ALL">ทั้งหมด</Select.Option>
+                <Select.Option value="DAILY">รายวัน</Select.Option>
+                <Select.Option value="WEEKLY">รายสัปดาห์</Select.Option>
+                <Select.Option value="MONTHLY">รายเดือน</Select.Option>
+              </Select>
+            </div>
+            
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <Typography.Text style={{ marginRight: 8 }}>สถานะ:</Typography.Text>
+              <Select
+                style={{ width: 140 }}
+                value={activeFilter.status}
+                onChange={(value: TodoStatus | "ALL") => setActiveFilter(prev => ({ ...prev, status: value }))}
+              >
+                <Select.Option value="ALL">ทุกสถานะ</Select.Option>
+                <Select.Option value="PENDING">รอดำเนินการ</Select.Option>
+                <Select.Option value="IN_PROGRESS">กำลังดำเนินการ</Select.Option>
+                <Select.Option value="COMPLETED">เสร็จสิ้น</Select.Option>
+                <Select.Option value="CANCELLED">ยกเลิก</Select.Option>
+              </Select>
+            </div>
+          </Space>
+        </Col>
+      </Row>
+    );
+  };
   
   return (
     <Card>
-      <Space 
-        direction="vertical" 
-        size="middle" 
-        style={{ width: '100%' }}
-      >
-        <Space 
-          direction="horizontal" 
-          size="middle" 
-          style={{ 
-            width: '100%', 
-            flexWrap: 'wrap', 
-            justifyContent: 'flex-start' 
-          }}
-        >
-          <Select
-            style={{ width: 200 }}
-            className="w-full sm:w-auto"
-            value={activeFilter.type}
-            onChange={(value: TodoType | "ALL") => setActiveFilter(prev => ({ ...prev, type: value }))}
-            placeholder="กรองตามประเภท"
-          >
-            <Select.Option value="ALL">ทั้งหมด</Select.Option>
-            <Select.Option value="DAILY">รายวัน</Select.Option>
-            <Select.Option value="WEEKLY">รายสัปดาห์</Select.Option>
-            <Select.Option value="MONTHLY">รายเดือน</Select.Option>
-          </Select>
-          
-          <Select
-            style={{ width: 200 }}
-            className="w-full sm:w-auto"
-            value={activeFilter.status}
-            onChange={(value: TodoStatus | "ALL") => setActiveFilter(prev => ({ ...prev, status: value }))}
-            placeholder="กรองตามสถานะ"
-          >
-            <Select.Option value="ALL">ทุกสถานะ</Select.Option>
-            <Select.Option value="PENDING">รอดำเนินการ</Select.Option>
-            <Select.Option value="IN_PROGRESS">กำลังดำเนินการ</Select.Option>
-            <Select.Option value="COMPLETED">เสร็จสิ้น</Select.Option>
-            <Select.Option value="CANCELLED">ยกเลิก</Select.Option>
-          </Select>
-        </Space>
+      <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+        <FilterControls />
         
         <div style={{ width: '100%', overflowX: 'auto' }}>
           <Table 
-            columns={columns} 
+            columns={isMobile ? mobileColumns : desktopColumns}
             dataSource={filteredTodoLists} 
             rowKey="id"
             locale={{ emptyText: 'ไม่พบรายการ' }}
@@ -246,8 +371,7 @@ export default function PublicTodoList({ todoLists }: PublicTodoListProps) {
               pageSizeOptions: ['10', '20', '50'],
               responsive: true
             }}
-            scroll={{ x: true }}
-            style={{ minWidth: 600 }}
+            scroll={{ x: isMobile ? undefined : 660 }}
           />
         </div>
       </Space>

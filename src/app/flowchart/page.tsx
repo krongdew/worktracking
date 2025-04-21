@@ -6,6 +6,8 @@ import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { getUserFlowcharts } from "@/server/actions/flowchart-actions";
 
+
+
 export const metadata: Metadata = {
   title: "Flowchart - ระบบติดตามงาน",
   description: "จัดการแผนผังกระบวนการทำงาน",
@@ -21,9 +23,11 @@ export default async function FlowchartPage() {
   const flowcharts = await getUserFlowcharts(session.user.id);
   
   return (
+
     <div className="container mx-auto py-8 px-4">
       <h1 className="text-2xl font-bold mb-6">แผนผังกระบวนการทำงาน</h1>
       <FlowchartManager initialFlowcharts={flowcharts} userId={session.user.id} />
     </div>
+
   );
 }
