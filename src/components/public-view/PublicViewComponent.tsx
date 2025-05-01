@@ -7,7 +7,8 @@ import {
   CalendarOutlined, 
   CheckSquareOutlined, 
   LineChartOutlined, 
-  NodeIndexOutlined 
+  NodeIndexOutlined,
+  BarChartOutlined // Add this for statistics icon
 } from "@ant-design/icons";
 import PublicYearPlan from "@/components/public-view/PublicYearPlan";
 import PublicTodoList from "@/components/public-view/PublicTodoList";
@@ -56,6 +57,24 @@ export default function PublicViewComponent({ userData }: PublicViewComponentPro
       label: "แผนผังกระบวนการ", 
       icon: <NodeIndexOutlined />,
       children: <PublicFlowchart flowcharts={userData.flowcharts} />
+    },
+    { 
+      key: "statistics", 
+      label: "รายงานสถิติการใช้งาน mu life pass", 
+      icon: <BarChartOutlined />,
+      children: (
+        <div className="w-full">
+          <iframe 
+            width="100%" 
+            height="800" 
+            src="https://lookerstudio.google.com/embed/reporting/ca459a2d-5deb-4308-b644-51f1dd16d251/page/kIV1C" 
+            frameBorder="0" 
+            style={{ border: 0 }} 
+            allowFullScreen 
+            sandbox="allow-storage-access-by-user-activation allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+          ></iframe>
+        </div>
+      )
     }
   ];
   
