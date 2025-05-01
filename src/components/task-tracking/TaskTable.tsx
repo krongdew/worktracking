@@ -1,11 +1,12 @@
 // src/components/task-tracking/TaskTable.tsx
 "use client";
 
+import { useState, useEffect } from "react";
 import { Task, TaskStatus, YearPlanActivity } from "@prisma/client";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
 import { Table, Tag, Button, Dropdown, Progress, Space, Typography, Tooltip } from "antd";
-import {  EditOutlined, DeleteOutlined, EyeOutlined } from "@ant-design/icons";
+import {  EditOutlined, DeleteOutlined, EyeOutlined, MoreOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 
 const { Text, Paragraph } = Typography;
@@ -30,6 +31,60 @@ export default function TaskTable({
   onDelete,
   onViewDetail,
 }: TaskTableProps) {
+  // เพิ่ม state สำหรับตรวจสอบขนาดหน้าจอ
+  const [isMobile, setIsMobile] = useState(false);
+  // เพิ่มฟังก์ชันจัดเรียงงาน
+  const sortTasks = (a: TaskWithRelations, b: TaskWithRelations) => {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    
+    const aDate = new Date(a.startDateTime);
+    const bDate = new Date(b.startDateTime);
+    
+    // คำนวณความสำคัญของงานตามสถานะและวันที่
+    const getPriority = (task: TaskWithRelations, date: Date) => {
+      // งานที่กำลังดำเนินการ
+      if (task.status === 'IN_PROGRESS') return 0;
+      // งานที่รอดำเนินการและอยู่ในเดือนปัจจุบัน
+      if (task.status === 'PENDING' && date >= today && date <= endOfMonth) return 1;
+      // งานที่รอดำเนินการและยังไม่ถึงกำหนด
+      if (task.status === 'PENDING' && date > endOfMonth) return 2;
+      // งานที่ล่าช้า
+      if (task.status === 'DELAYED') return 3;
+      // งานที่เสร็จสิ้นแล้ว
+      if (task.status === 'COMPLETED') return 4;
+      // งานที่ยกเลิก
+      if (task.status === 'CANCELLED') return 5;
+      // อื่นๆ
+      return 6;
+    };
+    
+    const aPriority = getPriority(a, aDate);
+    const bPriority = getPriority(b, bDate);
+    
+    // เรียงตามความสำคัญก่อน
+    if (aPriority !== bPriority) {
+      return aPriority - bPriority;
+    }
+    
+    // ถ้าความสำคัญเท่ากัน ให้เรียงตามวันที่
+    return aDate.getTime() - bDate.getTime();
+  };
+  // ตรวจสอบขนาดหน้าจอเมื่อ component ถูกโหลดและเมื่อมีการ resize
+  useEffect(() => {
+    const checkScreenSize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+    
+    return () => {
+      window.removeEventListener('resize', checkScreenSize);
+    };
+  }, []);
+  
   // ข้อมูลสำหรับแสดงสถานะ
   const taskStatusLabels: Record<TaskStatus, string> = {
     PENDING: "รอดำเนินการ",
@@ -67,12 +122,105 @@ export default function TaskTable({
     return sortedProgress[0].percentComplete;
   };
 
-  // กำหนด columns สำหรับ Ant Design Table
-  const columns: ColumnsType<TaskWithRelations> = [
+  // สำหรับหน้าจอโทรศัพท์มือถือ
+  const mobileColumns: ColumnsType<TaskWithRelations> = [
     {
       title: "งาน",
       dataIndex: "title",
-      key: "title",
+      key: "title-mobile",
+      width: '60%',
+      render: (text, task) => (
+        <Space direction="vertical" size={0}>
+          <Text 
+            strong 
+            style={{ color: "#1890ff", cursor: "pointer" }} 
+            onClick={() => onViewDetail(task)}
+          >
+            {text}
+          </Text>
+          <Space direction="vertical" size={0}>
+            <Text type="secondary" style={{ fontSize: '12px' }}>
+              {formatDateTime(task.startDateTime)}
+            </Text>
+            {task.activity && (
+              <Tag color="purple" style={{ marginTop: 4 }}>
+                {task.activity.title}
+              </Tag>
+            )}
+          </Space>
+        </Space>
+      ),
+    },
+    {
+      title: "สถานะ",
+      key: "status-mobile",
+      width: '30%',
+      render: (_, task) => (
+        <Space direction="vertical" size={4}>
+          <Dropdown
+            menu={{
+              items: [
+                { key: "PENDING", label: "รอดำเนินการ" },
+                { key: "IN_PROGRESS", label: "กำลังดำเนินการ" },
+                { key: "COMPLETED", label: "เสร็จสิ้น" },
+                { key: "DELAYED", label: "ล่าช้า" },
+                { key: "CANCELLED", label: "ยกเลิก" },
+              ],
+              onClick: ({ key }) => onStatusChange(task.id, key as TaskStatus),
+            }}
+            trigger={["click"]}
+          >
+            <Tag color={taskStatusColors[task.status]} style={{ cursor: "pointer" }}>
+              {taskStatusLabels[task.status]}
+            </Tag>
+          </Dropdown>
+          <Progress percent={getLatestProgress(task.progress)} size="small" />
+        </Space>
+      ),
+    },
+    {
+      title: "",
+      key: "action-mobile",
+      width: '10%',
+      render: (_, task) => (
+        <Dropdown
+          menu={{
+            items: [
+              {
+                key: 'view',
+                label: 'ดูรายละเอียด',
+                icon: <EyeOutlined />,
+                onClick: () => onViewDetail(task)
+              },
+              {
+                key: 'edit',
+                label: 'แก้ไข',
+                icon: <EditOutlined />,
+                onClick: () => onEdit(task)
+              },
+              {
+                key: 'delete',
+                label: 'ลบ',
+                icon: <DeleteOutlined />,
+                danger: true,
+                onClick: () => onDelete(task.id)
+              }
+            ]
+          }}
+          trigger={['click']}
+        >
+          <Button type="text" icon={<MoreOutlined />} />
+        </Dropdown>
+      )
+    }
+  ];
+
+  // สำหรับหน้าจอเดสก์ท็อป
+  const desktopColumns: ColumnsType<TaskWithRelations> = [
+    {
+      title: "งาน",
+      dataIndex: "title",
+      key: "title-desktop",
       render: (text, task) => (
         <Space direction="vertical" size={0}>
           <Text 
@@ -93,7 +241,7 @@ export default function TaskTable({
     {
       title: "กิจกรรมจาก Year Plan",
       dataIndex: "activity",
-      key: "activity",
+      key: "activity-desktop",
       render: (activity) => (
         activity ? (
           <Text type="secondary" strong style={{ color: "#722ed1" }}>
@@ -106,7 +254,7 @@ export default function TaskTable({
     },
     {
       title: "วันและเวลา",
-      key: "dateTime",
+      key: "dateTime-desktop",
       render: (_, task) => (
         <Space direction="vertical" size={0}>
           <Text>{formatDateTime(task.startDateTime)}</Text>
@@ -121,12 +269,12 @@ export default function TaskTable({
     {
       title: "สถานที่",
       dataIndex: "location",
-      key: "location",
+      key: "location-desktop",
       render: (location) => location || <Text type="secondary">-</Text>,
     },
     {
       title: "ความคืบหน้า",
-      key: "progress",
+      key: "progress-desktop",
       render: (_, task) => {
         const progressValue = getLatestProgress(task.progress);
         return <Progress percent={progressValue} size="small" />;
@@ -134,7 +282,7 @@ export default function TaskTable({
     },
     {
       title: "สถานะ",
-      key: "status",
+      key: "status-desktop",
       render: (_, task) => (
         <Dropdown
           menu={{
@@ -157,7 +305,7 @@ export default function TaskTable({
     },
     {
       title: "การดำเนินการ",
-      key: "action",
+      key: "action-desktop",
       align: "center",
       render: (_, task) => (
         <Space size="small">
@@ -190,16 +338,26 @@ export default function TaskTable({
       ),
     },
   ];
-
+  const sortedTasks = [...tasks].sort(sortTasks);
   return (
-    <Table
-      columns={columns}
-      dataSource={tasks.map(task => ({ ...task, key: task.id }))}
-      pagination={{ pageSize: 10 }}
-      rowClassName={() => "hover:bg-gray-50"}
-      locale={{ emptyText: "ไม่พบรายการงาน" }}
-      bordered
-      size="middle"
-    />
+    <div style={{ width: '100%', overflowX: 'auto' }}>
+      <Table
+        columns={isMobile ? mobileColumns : desktopColumns}
+        dataSource={sortedTasks.map(task => ({ ...task, key: task.id }))}
+        pagination={{ 
+          pageSize: 10,
+          showSizeChanger: true,
+          pageSizeOptions: ['10', '20', '50'],
+          responsive: true 
+        }}
+        rowClassName={() => "hover:bg-gray-50"}
+        locale={{ emptyText: "ไม่พบรายการงาน" }}
+        bordered
+        size="middle"
+        scroll={{ x: isMobile ? undefined : 1000 }}
+        // เพิ่ม sorter เริ่มต้น
+        sortDirections={['descend', 'ascend']}
+      />
+    </div>
   );
 }
