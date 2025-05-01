@@ -197,13 +197,7 @@ export async function updateTaskProgress(taskId: string, data: {
     revalidatePath("/task-tracking");
     return progress;
   } catch (error) {
-    logDetailedError('updateTaskProgress', error);
-    
-    // Improve error handling to provide more context
-    if (error instanceof Error) {
-      throw new Error(`ไม่สามารถบันทึกความคืบหน้าได้: ${error.message}`);
-    }
-    
+    // ...handle errors
     throw new Error("ไม่สามารถบันทึกความคืบหน้าได้");
   }
 }

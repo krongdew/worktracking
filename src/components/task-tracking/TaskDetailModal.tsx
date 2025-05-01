@@ -1,10 +1,9 @@
-// src/components/task-tracking/TaskDetailModal.tsx
 "use client";
 
 import { Task, TaskStatus, YearPlanActivity } from "@prisma/client";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
-import { useState } from "react";
+import { useState, useEffect } from "react"; // เพิ่ม useEffect
 import { updateTaskProgress } from "@/server/actions/task-tracking-actions";
 import { useRouter } from "next/navigation";
 import { 
@@ -44,6 +43,7 @@ interface TaskDetailModalProps {
   onClose: () => void;
   onEdit: () => void;
   visible: boolean;
+  onProgressUpdate?: (taskId: string, updatedProgress: TaskProgress) => void;
 }
 
 export default function TaskDetailModal({
@@ -51,19 +51,34 @@ export default function TaskDetailModal({
   onClose,
   onEdit,
   visible = true,
+  onProgressUpdate
 }: TaskDetailModalProps) {
   const router = useRouter();
   const [isSubmittingProgress, setIsSubmittingProgress] = useState(false);
   const [progressDescription, setProgressDescription] = useState("");
-  const [progressPercent, setProgressPercent] = useState<number>(
-    Math.max(
-      task.progress.length > 0
-        ? Math.max(...task.progress.map(p => p.percentComplete))
-        : 0,
-      0
-    )
-  );
+  const [progressPercent, setProgressPercent] = useState<number>(0);
+  
+  // เพิ่ม state ใหม่เพื่อเก็บข้อมูล progress ที่เรียงลำดับแล้วภายใน component
+  const [localProgress, setLocalProgress] = useState<TaskProgress[]>([]);
+  
   const [form] = Form.useForm();
+  
+  // เพิ่ม useEffect เพื่ออัพเดท progressPercent และ localProgress เมื่อ task เปลี่ยนแปลง
+  useEffect(() => {
+    // อัพเดท progressPercent เป็นค่าสูงสุดจาก progress
+    const maxProgress = task.progress.length > 0
+      ? Math.max(...task.progress.map(p => p.percentComplete))
+      : 0;
+    
+    setProgressPercent(maxProgress);
+    
+    // เรียงลำดับความคืบหน้าใหม่
+    const sorted = [...task.progress].sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+    
+    setLocalProgress(sorted);
+  }, [task]);  // ทำงานเมื่อ task มีการเปลี่ยนแปลง
   
   const taskStatusLabels: Record<TaskStatus, string> = {
     PENDING: "รอดำเนินการ",
@@ -95,14 +110,22 @@ export default function TaskDetailModal({
     setIsSubmittingProgress(true);
     
     try {
-      await updateTaskProgress(task.id, {
+      const newProgress = await updateTaskProgress(task.id, {
         description: values.description,
         percentComplete: progressPercent,
       });
       
       form.resetFields();
       setProgressDescription("");
-      router.refresh();
+      
+      // อัพเดท localProgress โดยตรงทันที ไม่ต้องรอ parent อัพเดท prop
+      setLocalProgress(prev => [newProgress, ...prev]);
+      
+      if (onProgressUpdate) {
+        onProgressUpdate(task.id, newProgress);
+      } else {
+        router.refresh();
+      }
     } catch (error) {
       console.error("Error adding progress:", error);
     } finally {
@@ -115,19 +138,14 @@ export default function TaskDetailModal({
     onEdit();  // จากนั้นจึงเรียก onEdit
   };
   
-  // เรียงลำดับความคืบหน้าจากล่าสุดไปเก่าสุด
-  const sortedProgress = [...task.progress].sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  );
+  // ไม่ต้องเรียงลำดับความคืบหน้าใหม่ที่นี่ แต่ใช้ localProgress ที่เรียงไว้แล้ว
+  // const sortedProgress = [...task.progress].sort(...); <- ลบบรรทัดนี้ออก
   
   return (
     <Modal
       open={visible}
       title="รายละเอียดงาน"
-      onCancel={() => {
-        // เพิ่มการเรียก onClose เมื่อปิด Modal
-        onClose();
-      }}
+      onCancel={onClose}
       width={800}
       maskClosable={true}
       footer={[
@@ -257,10 +275,10 @@ export default function TaskDetailModal({
             ประวัติความคืบหน้า
           </Divider>
           
-          {sortedProgress.length > 0 ? (
+          {localProgress.length > 0 ? (
             <Timeline
               mode="left"
-              items={sortedProgress.map((progress) => ({
+              items={localProgress.map((progress) => ({
                 children: (
                   <Card size="small" style={{ marginBottom: 8 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>

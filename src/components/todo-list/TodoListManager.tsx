@@ -90,9 +90,15 @@ export default function TodoListManager({
         userId,
       });
       
-      setTodoLists([...todoLists, newTodo]);
+      // อัพเดต state โดยตรงโดยคงการเรียงลำดับเดิม
+      const updatedTodos = [...todoLists, newTodo];
+      setTodoLists(updatedTodos);
+      
+      // เรียงลำดับใหม่ตามวันที่ครบกำหนด
+      sortTodoLists(updatedTodos);
+      
       setShowTodoForm(false);
-      router.refresh();
+      // ลบ router.refresh(); เพื่อไม่ให้รีเฟรชหน้า
     } catch (error) {
       console.error("Error creating todo:", error);
     }
@@ -102,30 +108,38 @@ export default function TodoListManager({
     try {
       const updatedTodo = await updateTodoStatus(data.id, data);
       
-      // อัปเดตค่าใน state
-      setTodoLists(
-        todoLists.map((todo) => (todo.id === updatedTodo.id ? updatedTodo : todo))
+      // อัพเดต state โดยตรงและคงการเรียงลำดับเดิมไว้
+      const updatedTodos = todoLists.map((todo) => 
+        todo.id === updatedTodo.id ? updatedTodo : todo
       );
+      setTodoLists(updatedTodos);
+      
+      // เรียงลำดับใหม่ตามวันที่ครบกำหนด
+      sortTodoLists(updatedTodos);
       
       setShowTodoForm(false);
       setIsEditing(false);
       setEditingItem(null);
-      router.refresh();
+      // ลบ router.refresh(); เพื่อไม่ให้รีเฟรชหน้า
     } catch (error) {
       console.error("Error updating todo:", error);
     }
   };
-  
-  const handleStatusChange = async (todoId: string, newStatus: TodoStatus) => {
+
+const handleStatusChange = async (todoId: string, newStatus: TodoStatus) => {
     try {
       const updatedTodo = await updateTodoStatus(todoId, { status: newStatus });
       
-      // อัปเดตค่าใน state
-      setTodoLists(
-        todoLists.map((todo) => (todo.id === updatedTodo.id ? updatedTodo : todo))
+      // อัพเดต state โดยตรง
+      const updatedTodos = todoLists.map((todo) => 
+        todo.id === updatedTodo.id ? updatedTodo : todo
       );
+      setTodoLists(updatedTodos);
       
-      router.refresh();
+      // เรียงลำดับใหม่ตามวันที่ครบกำหนด
+      sortTodoLists(updatedTodos);
+      
+      // ลบ router.refresh(); เพื่อไม่ให้รีเฟรชหน้า
     } catch (error) {
       console.error("Error updating todo status:", error);
     }
@@ -142,15 +156,45 @@ export default function TodoListManager({
       try {
         await deleteTodoList(todoId);
         
-        // อัปเดตค่าใน state
+        // อัพเดต state โดยตรง
         setTodoLists(todoLists.filter((todo) => todo.id !== todoId));
         
-        router.refresh();
+        // ลบ router.refresh(); เพื่อไม่ให้รีเฟรชหน้า
       } catch (error) {
         console.error("Error deleting todo:", error);
       }
     }
   };
+
+  // เพิ่มฟังก์ชัน helper สำหรับการเรียงลำดับ
+  const sortTodoLists = (todos: TodoList[]) => {
+    const sorted = [...todos].sort((a, b) => {
+      // เรียงตามวันที่ครบกำหนด (ใกล้หมดเวลาจะอยู่บนสุด)
+      const dateComparison = new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+      
+      // ถ้าวันที่เท่ากัน ให้เรียงตามความสำคัญ
+      if (dateComparison === 0) {
+        const priorityOrder = { URGENT: 0, HIGH: 1, MEDIUM: 2, LOW: 3 };
+        return priorityOrder[a.priority] - priorityOrder[b.priority];
+      }
+      
+      return dateComparison;
+    });
+    
+    setFilteredTodoLists(
+      sorted.filter(todo => {
+        let matches = true;
+        if (activeFilter.type !== "ALL") matches = matches && todo.type === activeFilter.type;
+        if (activeFilter.status !== "ALL") matches = matches && todo.status === activeFilter.status;
+        return matches;
+      })
+    );
+  };
+  
+  // เมื่อ activeFilter เปลี่ยน ให้ใช้ sortTodoLists อีกครั้ง
+  useEffect(() => {
+    sortTodoLists(todoLists);
+  }, [activeFilter, todoLists]);
   
   return (
     <div>
